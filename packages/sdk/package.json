@@ -1,0 +1,22 @@
+{
+  "name": "@adobe/cdn-experimentation-core",
+  "description": "The core functionality of the SDK that is shared across all platforms.",
+  "version": "0.0.1",
+  "author": "",
+  "license": "Apache-2.0",
+  "module": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --coverage",
+    "lint": "eslint --fix . --ignore-pattern '**/dist/**'",
+    "format": "prettier --ignore-path .prettierignore '**/*.js' --write",
+    "build": "echo 'No build step defined for the core SDK.'"
+  },
+  "dependencies": {
+    "@adobe/aep-rules-engine": "^2.1.0"
+  },
+  "jest": {
+    "transform": {
+    }
+  }
+}

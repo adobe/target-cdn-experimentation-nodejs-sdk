@@ -1,0 +1,14 @@
+{
+  "./*.{cjs,mjs,js,jsx}": [
+    "eslint --cache --fix . --ignore-pattern '**/dist/**'"
+  ],
+  "./{packages}/**/*.{cjs,mjs,js,jsx}": [
+    "eslint --cache --fix .  --ignore-pattern '**/dist/**'"
+  ],
+  "./*.{html,js,cjs,mjs,jsx}": [
+    "prettier --write"
+  ],
+  "./{packages}/**/*.{html,js,cjs,mjs,jsx}": [
+    "prettier --write"
+  ]
+}

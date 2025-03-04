@@ -1,0 +1,28 @@
+{
+  "name": "Match by Allocation ",
+  "description": "",
+  "event":{
+    "type": "decisioning.propositionFetch",
+    "personalization": {
+      "sendDisplayEvent": false
+    },
+    "xdm": {
+      "identityMap": {
+        "ECID": [
+          {"id": "58520666134237204046201991105089158464"}
+        ]
+      },
+      "web": {
+        "webPageDetails": {
+          "URL": "address"
+        },
+        "webReferrer": {
+          "URL": ""
+        }
+      },
+      "implementationDetails": {
+        "name": "server-side"
+      }
+    }
+  }
+}
