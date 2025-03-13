@@ -1,0 +1,21 @@
+{
+  "name": "@adobe/cdn-experimentation-nodejs-sdk",
+  "version": "0.0.1",
+  "description": "Contains the build system and files specific to the NodeJS platform.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --coverage",
+    "lint": "eslint --fix . --ignore-pattern '**/dist/**'",
+    "format": "prettier --ignore-path .prettierignore '**/*.js' --write",
+    "prebuild": "rimraf dist",
+    "build": "NODE_ENV=production rollup -c rollup.config.mjs --bundleConfigAsCjs",
+    "start": "cd ./demo && node server.js"
+  },
+  "jest": {
+    "transform": {
+    }
+  },
+  "author": "",
+  "license": "Apache-2.0"
+}
