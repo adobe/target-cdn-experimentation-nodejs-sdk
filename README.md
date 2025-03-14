@@ -28,7 +28,7 @@ npm run install:all
 
 ### Usage
 
-#### Creating the SDK
+#### Using the SDK
 
 ```javascript
     import { Client } from '@adobe/target-cdn-experimentation-akamai-sdk';
@@ -43,9 +43,6 @@ npm run install:all
     
     const reqEvent = {
         "type": "decisioning.propositionFetch",
-        "personalization": {
-            "sendDisplayEvent": true
-        },
         "xdm": { ...
         }
     }

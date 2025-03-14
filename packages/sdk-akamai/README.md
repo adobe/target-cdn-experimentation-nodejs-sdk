@@ -42,9 +42,35 @@ You must install the CLI edgeworker and sandbox packages.
 
 ### Demo
 
+TBD
+
 #### Setup
 
-#### Workflow
+TBD
+
+#### Using the SDK
+
+```javascript
+    import { Client } from '@adobe/target-cdn-experimentation-akamai-sdk';
+    
+    const clientOptions = {
+        datastreamId: DATASTREAM_ID, 
+        orgId: ORG_ID,
+        propertyToken: PROPERTY_TOKEN,
+        oddEnabled: true
+      };
+    const client = await Client(clientOptions);
+    
+    const reqEvent = {
+        "type": "decisioning.propositionFetch",
+        "xdm": { ...
+        }
+    }
+    const responseEvent = await client.sendEvent(reqEvent);
+    
+    // process the response
+    const getPropositions = responseEvent.handle.filter((payload) => payload.type === "personalization:decisions")
+```
 
 ### Contributing
 

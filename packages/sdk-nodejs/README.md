@@ -25,6 +25,31 @@ Run `npm run install:all` at the root of the project to install all the dependen
 - `npm run build` - Builds in `/dist/` the NodeJS Demo project and the Library
 - `npm run start` - Starts the demo server
 
+
+#### Creating the SDK
+
+```javascript
+    import { Client } from '@adobe/target-cdn-experimentation-akamai-sdk';
+    
+    const clientOptions = {
+        datastreamId: DATASTREAM_ID, 
+        orgId: ORG_ID,
+        propertyToken: PROPERTY_TOKEN,
+        oddEnabled: true
+      };
+    const client = await Client(clientOptions);
+    
+    const reqEvent = {
+        "type": "decisioning.propositionFetch",
+        "xdm": { ...
+        }
+    }
+    const responseEvent = await client.sendEvent(reqEvent);
+    
+    // process the response
+    const getPropositions = responseEvent.handle.filter((payload) => payload.type === "personalization:decisions")
+```
+
 ### Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
