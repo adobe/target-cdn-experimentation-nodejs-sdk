@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Form Example</title>
+    <style>
+      .form-group {
+        margin-bottom: 1em;
+      }
+      .result {
+        margin-top: 1em;
+        padding: 1em;
+        border: 1px solid #ccc;
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Decisioning samples</h2>
+    <button onclick="getSample('/sample1.json')">
+      Decision by Allocation and URL with local decisioning
+    </button>
+    <button onclick="getSample('/sample2.json')">
+      Decision by Allocation and URL, fetch rules from server, generate ECID
+    </button>
+    <button onclick="getSample('/sample3.json')">Placeholder</button>
+
+    <form id="dataForm">
+      <h2 id="name"></h2>
+      <h5 id="description"></h5>
+      <div class="form-group">
+        <label for="event">Event:</label>
+        <textarea id="event" name="event" rows="4" cols="50"></textarea>
+        <label for="config">config:</label>
+        <textarea id="config" name="event" rows="4" cols="50"></textarea>
+      </div>
+      <button type="submit">Submit</button>
+    </form>
+    <pre id="result" class="result"></pre>
+
+    <script>
+      const getSample = async (name) => {
+        const response = await fetch(name);
+        const result = await response.json();
+        document.getElementById("name").innerText = result.name;
+        document.getElementById("description").innerText = result.description;
+        document.getElementById("event").value = JSON.stringify(
+          result.event,
+          null,
+          2,
+        );
+        document.getElementById("config").value = JSON.stringify(
+          result.config,
+          null,
+          2,
+        );
+      };
+
+      document
+        .getElementById("dataForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const eventData = document.getElementById("event").value;
+          const configData = document.getElementById("config").value;
+          const response = await fetch("/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ event: eventData, config: configData }),
+          });
+          const result = await response.json();
+          document.getElementById("result").textContent = JSON.stringify(
+            result,
+            null,
+            2,
+          );
+        });
+    </script>
+  </body>
+</html>

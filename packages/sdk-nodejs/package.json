@@ -1,0 +1,35 @@
+{
+  "name": "@adobe/target-cdn-experimentation-nodejs-sdk",
+  "version": "0.0.1",
+  "description": "Contains the build system and files specific to the NodeJS platform.",
+  "type": "module",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "lib",
+    "types"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adobe/target-cdn-experimentation-nodejs-sdk"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --coverage",
+    "lint": "eslint --fix . --ignore-pattern '**/lib/**'",
+    "format": "prettier --ignore-path .prettierignore '**/*.js' --write",
+    "prebuild": "rimraf lib",
+    "build": "NODE_ENV=production rollup -c rollup.config.mjs --bundleConfigAsCjs",
+    "start": "cd ./demo && node server.js"
+  },
+  "jest": {
+    "transform": {
+    }
+  },
+  "author": "",
+  "license": "Apache-2.0"
+}

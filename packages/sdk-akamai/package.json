@@ -1,0 +1,41 @@
+{
+  "name": "@adobe/target-cdn-experimentation-akamai-sdk",
+  "version": "0.0.1",
+  "description": "Contains the build system and files specific to the Akamai platform.",
+  "type": "module",
+  "main": "lib/index.cjs.js",
+  "module": "lib/index.esm.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "lib",
+    "types"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adobe/target-cdn-experimentation-nodejs-sdk"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --coverage",
+    "lint": "eslint --fix . --ignore-pattern '**/lib/**'",
+    "format": "prettier --ignore-path .prettierignore '**/*.js' --write",
+    "prebuild": "node increment-version.js && rimraf lib && rimraf dist",
+    "build": "NODE_ENV=production rollup -c rollup.config.mjs --bundleConfigAsCjs",
+    "postbuild": "cd dist/demo/ && tar -czvf odd.tgz main.js bundle.json",
+    "edgeworker:deploy": "source .env && akamai ew upload $EDGEWORKER_ID --bundle ./dist/demo/odd.tgz",
+    "edgeworker:activate": "source .env && akamai ew av $EDGEWORKER_ID staging $EDGEWORKER_VERSION",
+    "edgeworker:status": "source .env && akamai edgeworkers status $EDGEWORKER_ID --versionId $EDGEWORKER_VERSION",
+    "sandbox:build": "NODE_ENV=production rollup -c rollup.config.mjs --bundleConfigAsCjs",
+    "sandbox:deploy": "source .env && akamai sandbox update-edgeworker $EDGEWORKER_ID ./dist/demo/odd.tgz",
+    "sandbox:start": "akamai sandbox start"
+  },
+  "jest": {
+    "transform": {
+    }
+  },
+  "author": "",
+  "license": "Apache-2.0"
+}

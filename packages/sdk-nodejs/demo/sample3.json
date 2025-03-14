@@ -1,0 +1,12 @@
+{
+  "name": "Placeholder",
+  "description": "Placeholder",
+  "event": {
+  },
+  "config": {
+    "orgId": "",
+    "datastreamId": "",
+    "propertyToken": "",
+    "oddEnabled": false
+  }
+}
