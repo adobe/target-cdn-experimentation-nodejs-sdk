@@ -36,6 +36,11 @@ jobs:
     - name: Build packages
       run: npm run build --workspaces
 
+    - name: Configure npm for publishing
+      run: |
+        npm config set //registry.npmjs.org/:_authToken ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
+        npm config set //registry.npmjs.org/:always-auth true
+
     - name: Publish NodeJS SDK
       uses: pascalgn/npm-publish-action@1.3.9
       with:
