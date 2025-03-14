@@ -1,11 +1,11 @@
 {
-  "name": "root",
+  "name": "@adobe/target-cdn-experimentation",
   "version": "0.0.1",
   "description": "Adobe CDN based experimentation",
   "keywords": [],
   "type": "module",
   "engines": {
-    "node": ">=20",
+    "node": ">=18",
     "npm": ">=10"
   },
   "private": true,
