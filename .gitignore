@@ -133,3 +133,5 @@ dist
 
 # publish npm package lib files
 lib
+
+.DS_Store
