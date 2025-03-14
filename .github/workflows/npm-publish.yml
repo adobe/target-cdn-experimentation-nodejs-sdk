@@ -16,16 +16,41 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-    - name: Publish if version has been updated
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build packages
+      run: npm run build --workspaces
+
+    - name: Publish NodeJS SDK
       uses: pascalgn/npm-publish-action@1.3.9
-      with: # All of theses inputs are optional
+      with:
+        workspace: "packages/sdk-nodejs"
+        publish_command: "npm"
+        publish_args: "--non-interactive --access public"
+        create_tag: "true"
         tag_name: "v%s"
         tag_message: "v%s"
-        create_tag: "true"
         commit_pattern: "^Release (\\S+)"
-        workspace: "."
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
+
+    - name: Publish Akamai SDK
+      uses: pascalgn/npm-publish-action@1.3.9
+      with:
+        workspace: "packages/sdk-akamai"
         publish_command: "npm"
-        publish_args: "--non-interactive"
-      env: # More info about the environment variables in the README
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Leave this as is, it's automatically generated
-        NPM_AUTH_TOKEN: ${{ secrets.ADOBE_BOT_NPM_TOKEN }} # Contact the Adobe Open Source Office for access
+        publish_args: "--non-interactive --access public"
+        create_tag: "true"
+        tag_name: "v%s"
+        tag_message: "v%s"
+        commit_pattern: "^Release (\\S+)"
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
