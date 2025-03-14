@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: '20'
         registry-url: 'https://registry.npmjs.org'
@@ -36,30 +36,26 @@ jobs:
     - name: Build packages
       run: npm run build --workspaces
 
-    - name: Configure NPM for changeset publish
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
-      run: |
-        echo "//registry.npmjs.org/:_authToken=${{ secrets.ADOBE_BOT_NPM_TOKEN }}" > ~/.npmrc
-
     - name: Publish NodeJS SDK
-      uses: "jsdevtools/npm-publish@v3"
+      uses: JS-DevTools/npm-publish@v3
       with:
         package: packages/sdk-nodejs
-        access: public
         token: ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
-        check-version: true
+        registry: https://registry.npmjs.org/
+        access: public
         tag: latest
+        strategy: upgrade
+        ignore-scripts: true
         dry-run: false
-        workspace: packages/sdk-nodejs
 
     - name: Publish Akamai SDK
-      uses: "jsdevtools/npm-publish@v3"
+      uses: JS-DevTools/npm-publish@v3
       with:
         package: packages/sdk-akamai
-        access: public
         token: ${{ secrets.ADOBE_BOT_NPM_TOKEN }}
-        check-version: true
+        registry: https://registry.npmjs.org/
+        access: public
         tag: latest
+        strategy: upgrade
+        ignore-scripts: true
         dry-run: false
-        workspace: packages/sdk-akamai
