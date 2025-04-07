@@ -9,13 +9,21 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-import { Cookies } from "cookies";
 
 const ECID_COOKIE_NAME = "ECID";
 
+const parseCookies = (cookieString) => {
+  if (!cookieString) return {};
+  return cookieString.split(";").reduce((cookies, cookie) => {
+    const [name, value] = cookie.trim().split("=");
+    cookies[name] = decodeURIComponent(value);
+    return cookies;
+  }, {});
+};
+
 const createClientRequest = (req) => {
-  const cookies = new Cookies(req.getHeader("Cookie"));
-  const ecid = cookies.get(ECID_COOKIE_NAME);
+  const cookies = parseCookies(req.headers.cookie);
+  const ecid = cookies[ECID_COOKIE_NAME] || "";
 
   const identityMap = ecid
     ? {
@@ -36,7 +44,9 @@ const createClientRequest = (req) => {
     },
     xdm: {
       web: {
-        webPageDetails: { URL: `${req.scheme}://${req.host}${req.url}` },
+        webPageDetails: {
+          URL: `${req.protocol}://${req.headers.host}${req.url}`,
+        },
         webReferrer: { URL: "" },
       },
       identityMap: {

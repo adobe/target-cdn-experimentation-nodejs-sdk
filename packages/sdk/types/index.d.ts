@@ -1,5 +1,5 @@
 /*
-Copyright 2022 Adobe. All rights reserved.
+Copyright 2025 Adobe. All rights reserved.
 This file is licensed to you under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain a copy
 of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -15,26 +15,27 @@ export interface Client {
 }
 
 export interface ClientOptions {
-  datastreamId: string; //
+  datastreamId: string;
   orgId: string;
   edgeDomain?: string; // default: edge.adobedc.net
   edgeBasePath?: string; // default: ee
-  // SPECIFIC TO SERVER SIDE
+  // SPECIFIC TO EDGE WORKER
   propertyToken: string; // The property token associated with Adobe Target ODD Activities
   rules?: Record<string, any>; // Inline rules that can be used to evaluate the event
   rulesPoolingInterval?: number; // Interval in second to pool the rules from the server; if not provided the rules are not pooled
   oddEnabled: boolean; // Enable local decisioning or go to the Adobe Target servers
-  ruleDomain?: string; // default: aep-odd-rules; Override the domain for the rules for an internal server or different mapping in Akamai
-  ruleBasePath?: string; // default: assets.adobetarget.com; Override the base path for the rules;
+  ruleDomain?: string; // default: assets.adobetarget.com; Override the domain for the rules for an internal server or different mapping in Akamai
+  ruleBasePath?: string; // default: aep-odd-rules; Override the base path for the rules;
 }
 export interface ClientResponse {
   sendEvent: SendEvent;
   sendNotification: SendNotification;
+  stopRulesPoolingInterval: () => void;
 }
 
 export interface EventOptions {
   type: string;
-  xdm: any;
+  xdm: Record<any, any>;
   data?: Record<any, any>;
   decisionScopes?: string[];
   personalization?: {
@@ -45,10 +46,21 @@ export interface EventOptions {
   };
 }
 
+export interface EventResponse {
+  requestId: string;
+  handle: EventResponseHandle[];
+}
+
+export interface EventResponseHandle {
+  type: string;
+  payload:  Record<any, any>[];
+  eventIndex?: number;
+}
+
 export interface SendEvent {
-  (options: EventOptions): Promise<any>;
+  (options: EventOptions): Promise<EventResponse>;
 }
 
 export interface SendNotification {
-  (options: EventOptions): Promise<any>;
+  (options: EventOptions): Promise<EventResponse>;
 }

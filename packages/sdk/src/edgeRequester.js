@@ -40,14 +40,15 @@ const edgeRequester = async (clientOptions, endpoint, requestBody) => {
   );
 
   const requestId = uuid();
-  const { edgeDomain, edgeBasePath, datastreamId } = clientOptions;
+  const { edgeDomain, edgeBasePath, datastreamId, locationHintId } =
+    clientOptions;
 
   const requestUrl = [
     getDomain(edgeDomain),
     edgeBasePath || EXP_EDGE_BASE_PATH_PROD,
-    "irl1",
+    locationHintId || "",
     "v2",
-    `${endpoint}?dataStreamId=${datastreamId}&requestId=${requestId}`,
+    `${endpoint}?datastreamId=${datastreamId}&requestId=${requestId}`,
   ]
     .filter((elem) => elem.length > 0)
     .join("/")

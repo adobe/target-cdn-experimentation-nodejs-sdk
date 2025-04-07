@@ -15,6 +15,8 @@ import { Container, TOKENS } from "./container.js";
 import { generateECID, generateEcidFromFpid } from "./utils/generateECID.js";
 import { uuid } from "./utils/uuid/index.js";
 import { MESSAGES } from "./messages.js";
+import { RuleEngine } from "./ruleEngine.js";
+import { createUrlContext, createTimingContext } from "./contextProvider.js";
 
 const getRequestIdentity = (namespaceCode) => {
   return (event) => {
@@ -63,14 +65,25 @@ const createResponseIdentityPayload = (event) => {
   };
 };
 
-/**
- * The SendEvent method that returns a decision
- * @param {import("../types/index.js").ClientOptions} clientOptions
- * @returns {import("../types/index.js").SendEvent}
- */
+const addContext = (event) => {
+  const webPageDetails = event?.xdm?.web?.webPageDetails;
+  const timingContext = createTimingContext();
+  const pageContext = createUrlContext(webPageDetails?.URL);
+  const referringContext = createUrlContext(webPageDetails?.referrer);
+  event.xdm.timestamp = event.xdm.timestamp || timingContext.current_timestamp;
+
+  event.tgt = {
+    page: pageContext,
+    referring: referringContext,
+    ...timingContext,
+  };
+
+  return event;
+};
+
 export const sendEvent = async (clientOptions, requestBody) => {
   const logAdapterInstance = Container().getInstance(TOKENS.LOGGER);
-  const { rulesEngine, orgId } = { ...clientOptions };
+  const { orgId, locationHintId } = { ...clientOptions };
   const requestEcid = getRequestEcidIdentity(requestBody);
 
   let ecid = requestEcid || [{ id: "" }];
@@ -82,7 +95,7 @@ export const sendEvent = async (clientOptions, requestBody) => {
       : generateECID();
   }
 
-  const event = {
+  const event = addContext({
     ...requestBody,
     xdm: {
       ...requestBody?.xdm,
@@ -91,7 +104,7 @@ export const sendEvent = async (clientOptions, requestBody) => {
         ECID: ecid,
       },
     },
-  };
+  });
 
   const context = {
     ...event,
@@ -99,7 +112,19 @@ export const sendEvent = async (clientOptions, requestBody) => {
   };
   let rulesConsequences = [];
   try {
-    rulesConsequences = rulesEngine.execute(context);
+    const decisionScopes = requestBody?.decisionScopes ||
+      requestBody?.personalization?.decisionScopes || ["__view__"];
+    const rulesByDecisionScope = clientOptions.rules.rules
+      .map((rule) => {
+        const consequencesForDecisionScope = rule.consequences.filter(
+          (consequences) => decisionScopes.includes(consequences.detail.scope),
+        );
+        return { ...rule, consequences: consequencesForDecisionScope };
+      })
+      .filter((rule) => rule.consequences.length > 0);
+    const rulesEngine = { ...clientOptions.rules, rules: rulesByDecisionScope };
+    const rulesEngineWithDecisionScope = RuleEngine({ rules: rulesEngine });
+    rulesConsequences = rulesEngineWithDecisionScope.execute(context);
   } catch (e) {
     logAdapterInstance.log(
       MESSAGES.SEND_EVENT.RULES_ENGINE_FAILED_EXECUTION,
@@ -114,8 +139,24 @@ export const sendEvent = async (clientOptions, requestBody) => {
     payload: rulesConsequences.flat(1).map((consequence) => consequence.detail),
   };
 
+  const handle = [createResponseIdentityPayload(event), decisions];
+
+  if (locationHintId) {
+    const locationHint = {
+      payload: [
+        {
+          scope: "EdgeNetwork",
+          hint: locationHintId,
+          ttlSeconds: 1800,
+        },
+      ],
+      type: "locationHint:result",
+    };
+    handle.push(locationHint);
+  }
+
   return {
     requestId: uuid(),
-    handle: [createResponseIdentityPayload(event), decisions],
+    handle,
   };
 };

@@ -25,9 +25,27 @@ const eventNotificationAdaptor = (requestBody, response) => {
       };
     }) || [];
 
+  const identity = response.handle?.find(
+    (handle) => handle.type === "identity:result",
+  );
+
+  const identityMap = identity?.payload.reduce((acc, identity) => {
+    const identityEntry = {
+      id: identity.id,
+    };
+    if (acc[identity.namespace.code] && acc[identity.namespace.code].length) {
+      acc[identity.namespace.code].push(identityEntry);
+    } else {
+      identityEntry.primary = true;
+      acc[identity.namespace.code] = [identityEntry];
+    }
+    return acc;
+  }, {});
+
   const displayEvent = {
     xdm: {
       ...requestBody.xdm,
+      identityMap: identityMap,
       eventType: "decisioning.propositionDisplay",
       timestamp: new Date().toISOString(),
       _experience: {

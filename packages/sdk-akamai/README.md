@@ -1,76 +1,175 @@
-## PROJECT NAME
+##  Target CDN Experimentation - Akamai SDK 
 
-Akamai Client - Target CDN Experimentation NodeJS SDK
+The "Target CDN Experimentation - Akamai SDK" can be used to run A/B tests in Akamai EdgeWorkers based on Adobe Target activities that are [ODD - On Device Decisioning enabled](https://experienceleague.adobe.com/en/docs/target-dev/developer/server-side/on-device-decisioning/overview) and using Adobe Experience Platform [Web SDK API's](https://experienceleague.adobe.com/en/docs/experience-platform/web-sdk/home).
 
-## Goals
 
-In this workspace we hold files that are specific to the Akamai platform.
-All the libraries specific to the platform are registered through a singleton store [Container](sdk/src/container.js) and the `TOKENS` object.
+### Setup
+1) In the Akamai platform, make sure that your Akamai Edgeworker can reach Adobe domains:
+  - `edge.adobedc.net` used to contact the Adobe Edge [/interact](https://developer.adobe.com/data-collection-apis/docs/endpoints/interact/) and [/collect](https://developer.adobe.com/data-collection-apis/docs/endpoints/collect/) endpoints 
+  - `assets.adobetarget.com` used to retrieve the `rules.json` file that holds the Adobe Target ODD activities and conditions 
 
-In the `Client` we register Akamai specific libraries:
-- [logger](https://techdocs.akamai.com/edgeworkers/docs/log) that is used instead of the NodeJS `console.log`
-- [http-request](https://techdocs.akamai.com/edgeworkers/docs/http-request) that is used instead of the NodeJS Fetch API
-- [crypto](https://techdocs.akamai.com/edgeworkers/docs/crypto) that is used instead of the NodeJS Crypto API
-  - `/sdk-akamai/src/uuid/rng.js` - we are using `crypto.getRandomValues()` instead of the missing NodeJS `randomFillSync()` method 
+This can be configured in the [Property Manager](https://techdocs.akamai.com/property-mgr/docs/welcome-prop-manager) using Property Hostnames and a Rule.
 
-### Installation
+2) Install the package
+```bash
+npm i @adobe/target-cdn-experimentation-akamai-sdk
+```
 
-Run `npm run install:all` at the root of the project to install all the dependencies.
+### Options
 
-### Pre-requisites
+Possible options when creating the `Client`
 
-1) You must setup the Akamai authentication credentials in the `.edgerc` file. You can find the instructions [here](https://techdocs.akamai.com/developer/docs/set-up-authentication-credentials).
+```javascript
+ClientOptions {
+  datastreamId: string;  // the datastreamId from the Adobe Experience Platform that connects to Adobe Target: e.g ebebf826-a01f-4458-8cec-ef61de241c93
+  orgId: string; // the Adobe Target organization ID e.g ADB3LETTERSANDNUMBERS@AdobeOrg
+  propertyToken: string; // the property token associated with the datastream and the Target activities
+  oddEnabled: boolean; // true - Enable local decisioning; false - acts as a proxy, all requests go to Adobe Edge servers
+  edgeDomain?: string; // default: edge.adobedc.net; Override the domain for a different mapping in Akamai; 
+  edgeBasePath?: string; // default: ee; Override if needed for custom mappings.  
+  rules?: Record<string, any>; // Inline rules that can be used to evaluate the events; Can be retrieved from assets.adobetarget.com
+  rulesPoolingInterval?: number; // Interval in seconds to pool the rules from the Adobe server; if not provided the rules are not pooled
+  ruleDomain?: string; // default: assets.adobetarget.com; Override the domain for the rules for a different mapping in Akamai
+  ruleBasePath?: string; // default: aep-odd-rules; Override the base path for the rules;
+}
+```
 
-2) To use the Akamai SDK you need to have the Akamai CLI installed and configured. You can find the installation instructions [here](https://techdocs.akamai.com/edgeworkers/docs/akamai-cli).
-You must install the CLI edgeworker and sandbox packages.
+The Client will return 3 functions where the event is in the format expected by Alloy [SendEvent](https://experienceleague.adobe.com/en/docs/experience-platform/web-sdk/commands/sendevent/overview) command
+```javascript
+{
+  sendEvent(event), //  evaluates the event against the rules and provides a response 
+  sendNotification(event), // return void if successful or throw an error; notifies the Adobe servers of an event
+  stopRulesPoolingInterval() // return void; stop rules Pooling 
+}
+```
 
-3) Depending on your project update the `sdk-akamai/demo/bundle.json` with the correct starting EdgeWorker version
-4) Update the `sdk-akamai/.env` file with the correct EDGEWORKER_ID
-
+### General workflow 
+1) Client initialization
+  - Retrives location hint information from [Adobe Edge Network](https://developer.adobe.com/data-collection-apis/docs/getting-started/location-hints/)
+  - If `oddEnabled:true` 
+    - if the `rules` are not provided inline, it retrieves the rules from `https://assets.adobetarget.com/aep-odd-rules/<orgId>/production/v1/<propertyToken>/rules.json` 
+    - if `rulesPoolingInterval` is set, it schedules the pooling interval
+  - Returns the initializd Client 
+- If the initialization fails an error is thrown
+2)  SendEvent function
+  - If `oddEnabled:false` the request and response are proxied to/from Adobe Edge servers
+  - If `oddEnabled:true` 
+    - retrieves the [ECID](https://experienceleague.adobe.com/en/docs/id-service/using/intro/overview) from the request or generates one if it's not present (random or based on FPID)
+    - evaluates the rules against the Event
+    - add LocationHintId
+  - Returns the WebSDK response with the activities that match the rules
+3) Based on the Response the customer has to persist inside the browser the ECID and LocationHintId and to be added each subsequent request for `sendEvent`
 
 ### Usage
 
-- `npm run format` - Runs the linter on the project.
-- `npm run lint` - Runs the linter on the project.
-- `npm run test` - Runs the tests with the coverage enabled. We are using Jest with `--experimental-vm-modules` to support native [ECMA Modules](https://jestjs.io/docs/ecmascript-modules)
-- `npm run build` - Builds in `/dist/` the Akamai Demo project and the Library; It will automatically increment the `bundle.json` version and update `EDGEWORKER_VERSION` in the `.env` file
-- `npm run edgeworker:deploy` - Deploys the Akamai build to the Akamai network
-- `npm run edgeworker:activate` - Activates the build on the Akamai staging network
-- `npm run sandbox:start` - Starts the default sandbox server
-- `npm run sandbox:deploy` - Deploys the build to the sandbox server
-
-
-### Demo
-
-TBD
-
-#### Setup
-
-TBD
-
-#### Using the SDK
-
+1) Inside your Akmai project import the Client
 ```javascript
-    import { Client } from '@adobe/target-cdn-experimentation-akamai-sdk';
-    
-    const clientOptions = {
-        datastreamId: DATASTREAM_ID, 
-        orgId: ORG_ID,
-        propertyToken: PROPERTY_TOKEN,
-        oddEnabled: true
-      };
-    const client = await Client(clientOptions);
-    
-    const reqEvent = {
-        "type": "decisioning.propositionFetch",
-        "xdm": { ...
-        }
-    }
-    const responseEvent = await client.sendEvent(reqEvent);
-    
-    // process the response
-    const getPropositions = responseEvent.handle.filter((payload) => payload.type === "personalization:decisions")
+import { Client } from "@adobe/target-cdn-experimentation-akamai-sdk";
 ```
+
+3) Create and configure the client in your Akamai [event handler](https://techdocs.akamai.com/edgeworkers/docs/event-handler-functions#event-handler-methods) 
+```javascript
+export async function responseProvider(request) {
+  ...
+  const client =  await Client({
+    datastreamId: "DATASTREAM_ID",
+    orgId: "ORG_ID", 
+    propertyToken: "PROPERTY_TOKEN", 
+    oddEnabled: true, // enable local decisioning
+    rules: imported_rules, // rules downloaded ahead of time from assets.adobetarget.com
+    edgeDomain: "proxyFor.adobedc.net", // the domain configured in the Property Manger that points to the "edge.adobedc.net",
+    ruleDomain: "proxyFor.assets.adobetarget.com", // the domain configured in the Property Manger that points to the "assets.adobetarget.com",
+});
+  ...
+```
+4)  Retrieve the results for a specific request 
+```javascript
+    const basicEvent = {
+      type: "decisioning.propositionFetch",
+      personalization: {
+        sendDisplayEvent: true, // send a display event automatically to the Edge servers
+      },
+      xdm: {
+        web: {
+          webPageDetails: { URL: `${req.scheme}://${req.host}${req.url}` },
+          webReferrer: { URL: "" },
+        },
+        implementationDetails: {
+          name: "server-side",
+        },
+      },
+    }
+    const sdkResponse = await client.sendEvent(basicEvent);
+```
+
+5) Process the `sdkResponse`
+```javascript
+  const response = createResponse(
+    200,
+    {
+      "Powered-By": ["Akamai EdgeWorkers" + Date.now()]
+    },
+    JSON.stringify(sdkResponse),
+  );
+  return response;
+```
+
+### Notes
+- The ECID and LocationHintId have to be saved for each visitor inside the browser to maintain the same A/B experience and to send the Notification events to the same Edge server
+- Differences between [Adobe Target NodeJS](https://experienceleague.adobe.com/en/docs/target-dev/developer/server-side/node-js/overview)
+  - Current package uses the WebSDK API's and request/response format instead of the Target one 
+  - The rule engine and rules.json format is different; it uses the [@adobe/aep-rules-engine](https://www.npmjs.com/package/@adobe/aep-rules-engine)
+  - All string comparisons done by the rules engine are done in a lower case and case insensitive way (url's, mbox values etc.)
+  - If no `decisionScopes` are provided we default to `__view__ / target-global-mbox`
+  - It's purpose is to fit EdgeWorkers contraints so it's features and size is smaller
+  - The current package is still in development and it's not as mature as Adobe Target NodeJS.
+- At the moment the library offers support for global mbox parameters in the Event in the `data.__adobe.target` [object](https://experienceleague.adobe.com/en/docs/platform-learn/migrate-target-to-websdk/send-parameters#parameter-mapping-summary)
+
+
+### Example of an Event
+```javascript
+{
+    "type": "decisioning.propositionFetch",
+    "personalization": {
+      "sendDisplayEvent": true // send the display event automatically
+    },
+    "decisionScopes": ["__view__", "customMbox"]
+    "xdm": {
+      "identityMap": {
+        "ECID": [
+          {
+            "id": "58520666134237204046201991105089158464" // the ECID stored in the clients browser
+          }
+        ],
+        "FPID": [
+          {
+            "id": "custom-FPID-string" // custom FPID 
+          }
+        ]
+      },
+      "web": {
+        "webPageDetails": {
+          "URL": `${req.scheme}://${req.host}${req.url}`
+        },
+        "webReferrer": {
+          "URL": ""
+        }
+      },
+      "implementationDetails": {
+        "name": "server-side"
+      }
+    },
+    "data": {
+      "__adobe": {
+        "target": {
+          "mboxParameter": "mboxValue" // global mbox parameter 
+        }
+      }
+    }
+
+  },
+```
+
 
 ### Contributing
 

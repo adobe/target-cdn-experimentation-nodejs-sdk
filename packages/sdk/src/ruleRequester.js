@@ -35,8 +35,7 @@ const getDomain = (ruleDomain) => {
 };
 
 const ruleRequester = async (clientOptions) => {
-  const { ruleDomain, datastreamId, orgId, propertyToken, ruleBasePath } =
-    clientOptions;
+  const { ruleDomain, orgId, propertyToken, ruleBasePath } = clientOptions;
   const httpRequestAdapterInstance = Container().getInstance(
     TOKENS.HTTP_CLIENT,
   );
@@ -46,16 +45,20 @@ const ruleRequester = async (clientOptions) => {
     orgId,
     "production",
     "v1",
-    propertyToken || datastreamId,
+    propertyToken,
     "rules.json",
   ]
     .filter((elem) => elem && elem.length > 0)
     .join("/")
     .trim();
 
+  const headers = {
+    ...DEFAULT_REQUEST_HEADERS
+  };
+
   try {
     return await httpRequestAdapterInstance.makeRequest(requestUrl, {
-      headers: DEFAULT_REQUEST_HEADERS,
+      headers,
     });
   } catch (e) {
     throw new Error(`${MESSAGES.RULES_ENGINE.FETCH_ERROR}, ${e}`);

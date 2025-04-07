@@ -22,8 +22,8 @@ import { md5 } from "./md5.js";
 
 /**
  * The Client initialization method
- * @param {import("@adobe/target-cdn-experimentation-core/types/").ClientOptions} clientOptions
- * @returns {Promise<import("@adobe/target-cdn-experimentation-core/types/").ClientResponse>}
+ * @param {import("../types/").ClientOptions} clientOptions
+ * @returns {Promise<import("../types/").ClientResponse>}
  */
 export async function Client(clientOptions) {
   Container().registerInstance(TOKENS.RNG, rng);

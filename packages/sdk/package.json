@@ -15,7 +15,8 @@
     "build": "echo 'No build step defined for the core SDK.'"
   },
   "dependencies": {
-    "@adobe/aep-rules-engine": "^2.1.0"
+    "@adobe/aep-rules-engine": "^2.1.0",
+    "parse-uri": "^1.0.0"
   },
   "jest": {
     "transform": {

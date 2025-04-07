@@ -32,6 +32,10 @@ const ruleRequesterMock = jest.fn().mockImplementation(() => emptyFunction);
 jest.unstable_mockModule("../src/ruleRequester.js", () => ({
   ruleRequester: ruleRequesterMock,
 }));
+const locationHintRequesterMock = jest.fn().mockImplementation(() => emptyFunction);
+jest.unstable_mockModule("../src/locationHintRequester.js", () => ({
+  locationHintRequester: locationHintRequesterMock,
+}));
 
 const { BaseClient } = await import("../src/index.js");
 
@@ -47,6 +51,7 @@ describe("base client", () => {
     sendNotificationMock.mockClear();
     ruleEngineMock.mockClear();
     ruleRequesterMock.mockClear();
+    locationHintRequesterMock.mockClear();
   });
 
   it("should return the functions for edge calls when ODD is disabled", async () => {
@@ -56,6 +61,7 @@ describe("base client", () => {
     };
 
     const client = await BaseClient(oddDisabledOptions);
+    expect(locationHintRequesterMock).toHaveBeenCalledTimes(0);
     client.sendEvent();
     expect(remoteSendEventMock).toHaveBeenCalledTimes(1);
     client.sendNotification();
@@ -70,6 +76,7 @@ describe("base client", () => {
     };
 
     const client = await BaseClient(oddDisabledOptions);
+    expect(locationHintRequesterMock).toHaveBeenCalledTimes(1);
     expect(ruleEngineMock).toHaveBeenCalledTimes(1);
     client.sendEvent();
     expect(sendEventMock).toHaveBeenCalledTimes(1);
@@ -84,6 +91,7 @@ describe("base client", () => {
     };
 
     const client = await BaseClient(oddDisabledAndNoRulesOptions);
+    expect(locationHintRequesterMock).toHaveBeenCalledTimes(1);
     expect(ruleRequesterMock).toHaveBeenCalledTimes(1);
     expect(ruleEngineMock).toHaveBeenCalledTimes(1);
     client.sendEvent();

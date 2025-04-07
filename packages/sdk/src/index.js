@@ -18,17 +18,20 @@ import { ruleRequester } from "./ruleRequester.js";
 import { MESSAGES } from "./messages.js";
 import { Container, TOKENS } from "./container.js";
 import { eventNotificationAdaptor } from "./utils/eventNotificationAdaptor.js";
+import { locationHintRequester } from "./locationHintRequester.js";
 
 /**
  * The Client initialization method
- * @param {import("../types/index.js").ClientOptions} clientOptions
- * @returns {Promise<import("../types/index.js").ClientResponse>}
+ * @param {import("../types/").ClientOptions} clientOptions
+ * @returns {Promise<import("../types/").ClientResponse>}
  */
 async function BaseClient(clientOptions) {
   const options = { ...clientOptions };
   const sendEventFunc = options.oddEnabled ? sendEvent : remoteSendEvent;
 
   if (options.oddEnabled) {
+    options.locationHintId = await locationHintRequester(options);
+
     if (!options.rules) {
       const rules = await ruleRequester(options);
       if (!rules) {
@@ -39,9 +42,10 @@ async function BaseClient(clientOptions) {
 
     if (options.rulesPoolingInterval) {
       const intervalInMilliseconds = options.rulesPoolingInterval * 1000;
-      setInterval(async () => {
+      options.rulesPoolingIntervalId = setInterval(async () => {
         const rules = await ruleRequester(options);
         if (!rules) {
+          clearInterval(options.rulesPoolingIntervalId);
           throw new Error(MESSAGES.RULES_ENGINE.EMPTY_RULES_ERROR);
         }
         options.rules = rules;
@@ -50,6 +54,9 @@ async function BaseClient(clientOptions) {
     }
 
     options.rulesEngine = RuleEngine(options);
+    options.stopRulesPoolingInterval = () => {
+      clearInterval(options.rulesPoolingIntervalId);
+    };
   }
 
   return {
@@ -66,6 +73,7 @@ async function BaseClient(clientOptions) {
     sendNotification: async (requestBody) => {
       return sendNotification(options, requestBody);
     },
+    stopRulesPoolingInterval: () => options?.stopRulesPoolingInterval(),
   };
 }
 
