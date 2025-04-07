@@ -10,16 +10,13 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 import { Cookies } from "cookies";
-import {
-  ALLOY_CONFIGURE_COMMAND,
-  ALLOY_SCRIPT_TAG,
-  ALLOY_JS_LIB_URL,
-} from "./config.js";
+
+const ECID_COOKIE_NAME = "ECID";
 
 const createClientRequest = (req) => {
-  const address = `${req.scheme}://${req.host}${req.url}`;
   const cookies = new Cookies(req.getHeader("Cookie"));
-  const ecid = cookies.get("X-ADOBE-ECID");
+  const ecid = cookies.get(ECID_COOKIE_NAME);
+
   const identityMap = ecid
     ? {
         ECID: [
@@ -39,7 +36,7 @@ const createClientRequest = (req) => {
     },
     xdm: {
       web: {
-        webPageDetails: { URL: address },
+        webPageDetails: { URL: `${req.scheme}://${req.host}${req.url}` },
         webReferrer: { URL: "" },
       },
       identityMap: {
@@ -52,34 +49,22 @@ const createClientRequest = (req) => {
   };
 };
 
-const addAlloyJsLib = async (streamRewriter, httpRequest) => {
-  const alloyResponse = await httpRequest(ALLOY_JS_LIB_URL, {
-    "X-SUBREQUEST": "true",
-  });
-  streamRewriter.onElement("head", (el) => {
-    el.prepend(`<script>${ALLOY_SCRIPT_TAG}</script>`);
-    el.append("<script>");
-    el.append(alloyResponse.text());
-    el.append("</script>");
-    el.append(`<script>
-                ${ALLOY_CONFIGURE_COMMAND}
-               </script>`);
-  });
-};
-
-const persistEcidInCookie = (streamRewriter, responseWithConsequences) => {
-  const ecidNamepace = responseWithConsequences.handle.find(
+const getPersistedValues = (response) => {
+  const ecidHandle = response?.handle?.find(
     (payload) =>
       payload.type === "identity:result" &&
       payload.payload[0].namespace.code === "ECID",
   );
-  const ecidValue = ecidNamepace.payload[0].id;
-  streamRewriter.onElement("body", (el) => {
-    el.append(
-      `<script> document.cookie = "X-ADOBE-ECID=${ecidValue};SameSite=None; Secure"; </script>`,
-    );
-  });
-  return ecidValue;
+  const ecid = ecidHandle?.payload[0]?.id || "";
+
+  const locationHintIdHandle = response?.handle?.find(
+    (payload) =>
+      payload.type === "locationHint:result" &&
+      payload?.payload[0]?.scope === "EdgeNetwork",
+  );
+  const locationHintId = locationHintIdHandle?.payload[0]?.hint || "";
+
+  return { ecid, locationHintId };
 };
 
-export { createClientRequest, addAlloyJsLib, persistEcidInCookie };
+export { createClientRequest, getPersistedValues };

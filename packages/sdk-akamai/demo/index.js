@@ -1,147 +1,44 @@
 import { Client } from "../src/index.js";
 import { rules } from "./rules.js";
-import { logger } from "log";
-import { createResponse } from "create-response";
-import { httpRequest } from "http-request";
-import { HtmlRewritingStream } from "html-rewriter";
-import {
-  DATASTREAM_ID,
-  ORG_ID,
-  PROPERTY_TOKEN,
-  ODD_BROWSER_CONFIG,
-} from "./config.js";
-import {
-  addAlloyJsLib,
-  createClientRequest,
-  persistEcidInCookie,
-} from "./utils.js";
-let client = undefined;
+import { createClientRequest, getPersistedValues } from "./utils.js";
 
-export async function responseProvider(request) {
+const CONFIG = {
+  datastreamId: "906E3A095DC834230A495FD6@AdobeOrg", // the datastreamId from the Adobe Experience Platform that connects to Adobe Target: e.g ebebf826-a01f-4458-8cec-ef61de241c93
+  orgId: "087b825c-79d3-4bb9-8bfc-c8116eb64501", // the organization ID e.g ADB3LETTERSANDNUMBERS@AdobeOrg
+  propertyToken: "", // the property token associated with the datastream and the Target activities
+  oddEnabled: true,
+  edgeDomain: "abc.adobelab2025.com",
+  rules: rules, // pass the inline rules.json retrieved from https://assets.adobetarget.com/aep-odd-rules/<ORG_ID>/production/v1/<PROPERTY_TOKEN>/rules.json
+};
+let client = null;
+
+export async function onClientRequest(request) {
   try {
-    const streamRewriter = new HtmlRewritingStream();
-    const originUrl = "/aem/";
-    const originResponse = await httpRequest(originUrl, {
-      "X-SUBREQUEST": "true",
-    });
+    // Initialize the client and keep a reference to it so that it can be reused across requests
+    client = client || (await Client(CONFIG));
+
+    // create an event from the incoming request
     const alloyEvent = createClientRequest(request);
 
-    // insert decisions in the HTML and apply it in the browser
-    const isHybridMode = request.query.includes("hybrid");
-    logger.log("Hybrid mode: ", isHybridMode);
-    if (isHybridMode) {
-      await addAlloyJsLib(streamRewriter, httpRequest);
-      logger.log("addAlloyJsLib: ", "done");
-    }
+    // retrieve the response that holds the consequences
+    const sdkResponse = await client.sendEvent(alloyEvent);
 
-    streamRewriter.onElement("head", (el) => {
-      el.append(`<script>
-                ${ODD_BROWSER_CONFIG}
-               </script>`);
-    });
-    logger.log("adding ODD_BROWSER_CONFIG: ");
+    // retrieve the ECID and locationHintId; both values have to be persisted in the browser across requests
+    // ECID - identifies each unique visitor with an unique id
+    // locationHintId - the locationHintId is used to route the request to the closest Edge Node
+    const { ecid, locationHintId } = getPersistedValues(sdkResponse);
 
-    client =
-      client ||
-      (await Client({
-        datastreamId: DATASTREAM_ID,
-        orgId: ORG_ID,
-        propertyToken: PROPERTY_TOKEN,
-        oddEnabled: true,
-        rules: rules,
-      }));
-
-    const responseWithConsequences = await client.sendEvent(alloyEvent);
-    logger.log(
-      "response with consequences ",
-      responseWithConsequences.handle.length,
-    );
-
-    const ecidValue = persistEcidInCookie(
-      streamRewriter,
-      responseWithConsequences,
-    );
-    logger.log("persistEcidInCookie: ", ecidValue);
-    // Create a simple response and return it to the client
-
-    const propositions = responseWithConsequences.handle
-      .filter((payload) => payload.type === "personalization:decisions")
-      .flatMap((payload) => payload.payload);
-
-    const consequenceItems = responseWithConsequences.handle
-      .filter((payload) => payload.type === "personalization:decisions")
-      .map((consequence) => consequence.payload.map((payload) => payload.items))
-      .flat(2);
-
-    streamRewriter.onElement("body", (el) => {
-      const debugInfoInline = `
-            <script>
-            const debugInfo = JSON.stringify({
-                originUrl: '${originUrl}',
-                ecidCookie: '${ecidValue || "not set"}',
-                consequences: ${JSON.stringify(consequenceItems)},
-                alloyEvent:  ${JSON.stringify(alloyEvent)}, 
-            });
-            console.log('Debug Info: ', debugInfo);
-            </script>
-            `;
-      el.append(debugInfoInline);
-    });
-
-    if (isHybridMode) {
-      streamRewriter.onElement("body", (el) => {
-        const applyJsonDecisions = `
-          <script>
-             window.initPropositionsDecisions = ${JSON.stringify(propositions)};
-          </script>
-          `;
-        el.append(applyJsonDecisions);
-      });
-      // Create a simple response and return it to the client
-      return createResponse(
-        200,
-        {
-          "Powered-By": ["Akamai EdgeWorkers" + Date.now()],
-        },
-        originResponse.body.pipeThrough(streamRewriter),
-      );
-    }
-
-    // insert in script tag the consequences
-    consequenceItems.forEach((item) => {
-      switch (item.schema) {
-        case "https://ns.adobe.com/personalization/json-content-item":
-          if (Array.isArray(item.data.content.payload)) {
-            item.data.content.payload.forEach((content) => {
-              streamRewriter.onElement(content.selector, (el) => {
-                if (content.type === "outerHTML") {
-                  el.replaceWith(content.payload);
-                }
-                if (content.type === "innerHTML") {
-                  el.replaceChildren(content.payload);
-                }
-              });
-            });
-          }
-          break;
-        case "https://ns.adobe.com/personalization/dom-action":
-          streamRewriter.onElement(item.data.selector, (el) => {
-            el.replaceWith(item.data.content);
-          });
-          break;
-      }
-    });
-
-    // Create a simple response and return it to the client
-    return createResponse(
+    request.respondWith(
       200,
       {
         "Powered-By": ["Akamai EdgeWorkers" + Date.now()],
+        "X-ADOBE-ECID": ecid,
+        "X-ADOBE-LOCATION-HINT": locationHintId,
       },
-      originResponse.body.pipeThrough(streamRewriter),
+      JSON.stringify(sdkResponse),
     );
   } catch (error) {
-    return createResponse(
+    request.respondWith(
       500,
       { "Powered-By": ["Akamai EdgeWorkers"] },
       `${request.method}: ${error.message}`,
