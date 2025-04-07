@@ -13,39 +13,19 @@ governing permissions and limitations under the License.
 import { uuid } from "./uuid/index.js";
 import { Container, TOKENS } from "../container.js";
 
-const createBigIntFromParts = (low, high) => {
-  low = BigInt.asUintN(32, BigInt(low));
-  high = BigInt.asUintN(32, BigInt(high));
-  const combined = (high << 32n) | low;
-  return BigInt.asIntN(64, combined);
-};
+const SECTION_LENGTH = 19;
+
 const uuidFromString = (uuidString) => {
   const cleanedUuid = uuidString.replace(/-/g, "");
-  let high32Bits = 0;
-  let low32Bits = 0;
 
-  for (let i = 0, offset = 24; i < 8; i += 2, offset -= 8) {
-    high32Bits |= parseInt(cleanedUuid.substring(i, i + 2), 16) << offset;
-  }
+  // Convert first 16 chars to high64BigInt
+  const highHex = cleanedUuid.slice(0, 16);
+  const high64BigInt = BigInt.asIntN(64, BigInt(`0x${highHex}`));
 
-  for (let i = 8, offset = 24; i < 16; i += 2, offset -= 8) {
-    low32Bits |= parseInt(cleanedUuid.substring(i, i + 2), 16) << offset;
-  }
+  // Convert last 16 chars to low64BigInt
+  const lowHex = cleanedUuid.slice(16, 32);
+  const low64BigInt = BigInt.asIntN(64, BigInt(`0x${lowHex}`));
 
-  const high64BigInt = createBigIntFromParts(low32Bits, high32Bits);
-
-  high32Bits = 0;
-  low32Bits = 0;
-
-  for (let i = 16, offset = 24; i < 24; i += 2, offset -= 8) {
-    high32Bits |= parseInt(cleanedUuid.substring(i, i + 2), 16) << offset;
-  }
-
-  for (let i = 24, offset = 24; i < 32; i += 2, offset -= 8) {
-    low32Bits |= parseInt(cleanedUuid.substring(i, i + 2), 16) << offset;
-  }
-
-  const low64BigInt = createBigIntFromParts(low32Bits, high32Bits);
   return { low64BigInt, high64BigInt };
 };
 
@@ -56,11 +36,13 @@ const generateECID = () => {
   const positiveHigh = high64BigInt?.toString().replaceAll("-", "");
   const positiveLow = low64BigInt?.toString().replaceAll("-", "");
 
-  return positiveHigh + positiveLow;
+  return (
+    positiveHigh.padStart(SECTION_LENGTH, "0") +
+    positiveLow.padStart(SECTION_LENGTH, "0")
+  );
 };
 
 const generateEcidFromFpid = (orgId, fpid) => {
-  const SECTION_LENGTH = 19;
   const md5 = Container().getInstance(TOKENS.MD5);
   const generatedUuid = md5(`${orgId}:${fpid}`);
 

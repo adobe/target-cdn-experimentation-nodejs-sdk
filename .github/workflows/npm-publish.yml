@@ -6,9 +6,8 @@
 # contact Adobe's Open Source Office to gain access to the secrets.ADOBE_BOT_NPM_TOKEN.
 name: npm-publish
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+
 jobs:
   npm-publish:
     name: npm-publish
