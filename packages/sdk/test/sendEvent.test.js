@@ -37,6 +37,10 @@ jest.unstable_mockModule("../src/utils/flatten.js", () => ({
 jest.unstable_mockModule("../src/utils/uuid/index.js", () => ({
   uuid: jest.fn().mockImplementation(() => "mocked-uuid"),
 }));
+const ruleEngineMock = jest.fn().mockImplementation(() => ({}));
+jest.unstable_mockModule("../src/RuleEngine.js", () => ({
+  RuleEngine: () => ({execute: ruleEngineMock}),
+}));
 
 const { sendEvent } = await import("../src/sendEvent.js");
 
@@ -48,8 +52,11 @@ describe("sendEvent", () => {
     rulesEngine: {
       execute: rulesEngineExecuteMock,
     },
+    rules: {
+      rules: []
+    }
   };
-  const requestBodyNoEvents = { events: [] };
+  const requestBodyNoEvents = { };
   const requestBodyWithEcid = {
     type: "decisioning.propositionFetch",
     xdm: {
@@ -142,14 +149,14 @@ describe("sendEvent", () => {
   });
 
   it("should return empty consequences for no events with fallback ECID", async () => {
-    rulesEngineExecuteMock.mockReturnValue([]);
+    ruleEngineMock.mockReturnValue([]);
     const request = await sendEvent(clientOptions, requestBodyNoEvents);
     expect(request).toStrictEqual(expectedEmptyConsequenceResponse);
   });
 
   it("should return empty consequences for empty events with fallback ECID", async () => {
     const requestBodyEmptyEvents = { events: [{}] };
-    rulesEngineExecuteMock.mockReturnValue([]);
+    ruleEngineMock.mockReturnValue([]);
     const request = await sendEvent(clientOptions, requestBodyEmptyEvents);
     expect(request).toStrictEqual(expectedEmptyConsequenceResponse);
   });
@@ -162,7 +169,7 @@ describe("sendEvent", () => {
         },
       },
     };
-    rulesEngineExecuteMock.mockReturnValue([]);
+    ruleEngineMock.mockReturnValue([]);
     const request = await sendEvent(clientOptions, requestBodyEmptyEvents);
     expect(request).toStrictEqual(expectedEmptyConsequenceResponse);
   });
@@ -179,7 +186,7 @@ describe("sendEvent", () => {
         },
       },
     };
-    rulesEngineExecuteMock.mockReturnValue([]);
+    ruleEngineMock.mockReturnValue([]);
     const request = await sendEvent(clientOptions, requestBodyEmptyEvents);
     expect(request).toStrictEqual(
       expectedEmptyConsequenceWithCustomEcidResponse,
@@ -187,7 +194,7 @@ describe("sendEvent", () => {
   });
 
   it("should return the rule evaluated consequences with fallback ECID", async () => {
-    rulesEngineExecuteMock.mockImplementation(() => [
+    ruleEngineMock.mockImplementation(() => [
       {
         detail: {
           id: "test-id",
@@ -199,49 +206,8 @@ describe("sendEvent", () => {
     expect(request).toStrictEqual(expectedConsequenceWithCustomEcidResponse);
   });
 
-  it.skip("should log if multiple and different ECID's are found", async () => {
-    const requestBodyWithMultipleEcid = {
-      events: [
-        {
-          xdm: {
-            identityMap: {
-              ECID: [
-                {
-                  id: "test-ecid",
-                  primary: true,
-                },
-              ],
-            },
-          },
-        },
-        {
-          xdm: {
-            identityMap: {
-              ECID: [
-                {
-                  id: "test-ecid-2",
-                  primary: true,
-                },
-              ],
-            },
-          },
-        },
-        {},
-      ],
-    };
-    rulesEngineExecuteMock.mockImplementation(() => [
-      {
-        detail: {
-          id: "test-id",
-          scope: "test-scope",
-        },
-      },
-    ]);
-    await sendEvent(clientOptions, requestBodyWithMultipleEcid);
-    expect(logMock).toBeCalled();
-  });
   it("should log if multiple and different ECID's are found", async () => {
-    rulesEngineExecuteMock.mockImplementation(() => {
+    ruleEngineMock.mockImplementation(() => {
       throw new Error("Invalid rules");
     });
 

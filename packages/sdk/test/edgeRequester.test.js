@@ -61,7 +61,7 @@ describe("edgeRequester", () => {
   it("should be called with fallback to default values for Domain and Path", () => {
     edgeRequester(clientOptions, endpoint, requestBody);
     expect(makeRequestMock).toBeCalledWith(
-      "https://edge.adobedc.net/ee/irl1/v2/test-endpoint?dataStreamId=test-datastream&requestId=mocked-uuid",
+      "https://edge.adobedc.net/ee/v2/test-endpoint?datastreamId=test-datastream&requestId=mocked-uuid",
       expectedOptions,
     );
   });
@@ -74,7 +74,7 @@ describe("edgeRequester", () => {
     };
     edgeRequester(customClientOptions, endpoint, requestBody);
     expect(makeRequestMock).toBeCalledWith(
-      "https://custom-domain/custom-path/irl1/v2/test-endpoint?dataStreamId=test-datastream&requestId=mocked-uuid",
+      "https://custom-domain/custom-path/v2/test-endpoint?datastreamId=test-datastream&requestId=mocked-uuid",
       expectedOptions,
     );
   });
@@ -86,7 +86,7 @@ describe("edgeRequester", () => {
     };
     edgeRequester(customClientOptions, endpoint, requestBody);
     expect(makeRequestMock).toBeCalledWith(
-      "/custom-path/irl1/v2/test-endpoint?dataStreamId=test-datastream&requestId=mocked-uuid",
+      "/custom-path/v2/test-endpoint?datastreamId=test-datastream&requestId=mocked-uuid",
       expectedOptions,
     );
   });
