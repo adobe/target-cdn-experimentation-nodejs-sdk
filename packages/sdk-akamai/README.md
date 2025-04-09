@@ -116,6 +116,7 @@ export async function responseProvider(request) {
 
 ### Notes
 - The ECID and LocationHintId have to be saved for each visitor inside the browser to maintain the same A/B experience and to send the Notification events to the same Edge server
+- Check the Demo folder for a complete basic implementation [in the repository](https://github.com/adobe/target-cdn-experimentation-nodejs-sdk/tree/main/packages/sdk-akamai/demo)
 - Differences between [Adobe Target NodeJS](https://experienceleague.adobe.com/en/docs/target-dev/developer/server-side/node-js/overview)
   - Current package uses the WebSDK API's and request/response format instead of the Target one 
   - The rule engine and rules.json format is different; it uses the [@adobe/aep-rules-engine](https://www.npmjs.com/package/@adobe/aep-rules-engine)
@@ -165,11 +166,46 @@ export async function responseProvider(request) {
           "mboxParameter": "mboxValue" // global mbox parameter 
         }
       }
+    },
+    "meta": {
+      "state": {
+        "domain": `${req.host}`,
+        "cookiesEnabled": true,
+        "entries": [
+          {
+            "key": "kndctr_<ORG_ID>_AdobeOrg_cluster",
+            "value": "clusterId"
+          }
+        ],
+      },
     }
 
   },
 ```
 
+# Target Audiences support
+
+**Supported audience attributes**:
+- [Site Pages](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/site-pages) > "Current page" - only the "URL", "Query" and "Path" options
+- [Geo](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/geo) - only the "Country/Region" option
+- [Custom parameters](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/custom-parameters) - you need to make sure that the value of the custom parameter is passed to the `data.__adobe.target.<custom-parameter-name>` object 
+
+**Supported evaluators**
+- Equals
+- Does not equal
+- Is greater than
+- Is greater than or equal to
+- Is less than
+- Is less than or equal to
+- Contains
+- Does not contain
+- Starts with
+- Parameter value is present
+Case sensitivity is not supported. If an audience is defined having "Case sensitive" active for an evaluator, that setting will be ignored.
+
+# Target Offers support
+
+Only [Form-Based Experience Composer](https://experienceleague.adobe.com/en/docs/target/using/experiences/form-experience-composer) offers of type "Create JSON Offer" and "Create HTML Offer" are supported.
 
 ### Contributing
 

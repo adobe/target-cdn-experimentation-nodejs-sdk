@@ -39,7 +39,7 @@ jest.unstable_mockModule("../src/utils/uuid/index.js", () => ({
 }));
 const ruleEngineMock = jest.fn().mockImplementation(() => ({}));
 jest.unstable_mockModule("../src/RuleEngine.js", () => ({
-  RuleEngine: () => ({execute: ruleEngineMock}),
+  RuleEngine: () => ({ execute: ruleEngineMock }),
 }));
 
 const { sendEvent } = await import("../src/sendEvent.js");
@@ -53,10 +53,10 @@ describe("sendEvent", () => {
       execute: rulesEngineExecuteMock,
     },
     rules: {
-      rules: []
-    }
+      rules: [],
+    },
   };
-  const requestBodyNoEvents = { };
+  const requestBodyNoEvents = {};
   const requestBodyWithEcid = {
     type: "decisioning.propositionFetch",
     xdm: {

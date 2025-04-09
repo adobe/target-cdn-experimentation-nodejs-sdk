@@ -11,6 +11,7 @@ governing permissions and limitations under the License.
 */
 
 const ECID_COOKIE_NAME = "ECID";
+const AEP_COOKIE_PREFIX = "kndctr";
 
 const parseCookies = (cookieString) => {
   if (!cookieString) return {};
@@ -21,9 +22,25 @@ const parseCookies = (cookieString) => {
   }, {});
 };
 
+const getAEPCookies = (cookies) => {
+  const entries = [];
+
+  Object.keys(cookies)
+    .filter((key) => key.startsWith(AEP_COOKIE_PREFIX))
+    .forEach((key) => {
+      entries.push({
+        key,
+        value: cookies[key],
+      });
+    });
+
+  return entries;
+};
+
 const createClientRequest = (req) => {
   const cookies = parseCookies(req.headers.cookie);
   const ecid = cookies[ECID_COOKIE_NAME] || "";
+  const aepCookies = getAEPCookies(cookies);
 
   const identityMap = ecid
     ? {
@@ -39,8 +56,14 @@ const createClientRequest = (req) => {
 
   return {
     type: "decisioning.propositionFetch",
+    decisionScopes: [
+      "cdn-sdk-mbox-test",
+      "ss-control-test",
+      "previewDemo",
+      "mboxtestmay",
+    ],
     personalization: {
-      sendDisplayEvent: false,
+      sendDisplayEvent: true,
     },
     xdm: {
       web: {
@@ -54,6 +77,20 @@ const createClientRequest = (req) => {
       },
       implementationDetails: {
         name: "server-side",
+      },
+    },
+    data: {
+      __adobe: {
+        target: {
+          myAnimal: "dog",
+        },
+      },
+    },
+    meta: {
+      state: {
+        domain: req.headers.host,
+        cookiesEnabled: true,
+        entries: aepCookies,
       },
     },
   };

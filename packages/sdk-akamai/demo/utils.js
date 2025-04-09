@@ -12,10 +12,21 @@ governing permissions and limitations under the License.
 import { Cookies } from "cookies";
 
 const ECID_COOKIE_NAME = "ECID";
+const AEP_COOKIE_PREFIX = "kndctr";
 
-const createClientRequest = (req) => {
+const createClientRequest = (req, config) => {
   const cookies = new Cookies(req.getHeader("Cookie"));
   const ecid = cookies.get(ECID_COOKIE_NAME);
+  const clusterCookieName = `${AEP_COOKIE_PREFIX}_${config.orgId.replace("@", "_")}_cluster`;
+  const clusterCookieValue = cookies.get(clusterCookieName);
+  const metaEntries = clusterCookieValue
+    ? [
+        {
+          key: clusterCookieName,
+          value: clusterCookieValue,
+        },
+      ]
+    : [];
 
   const identityMap = ecid
     ? {
@@ -31,8 +42,14 @@ const createClientRequest = (req) => {
 
   return {
     type: "decisioning.propositionFetch",
+    decisionScopes: [
+      "cdn-sdk-mbox-test",
+      "ss-control-test",
+      "previewDemo",
+      "mboxtestmay",
+    ],
     personalization: {
-      sendDisplayEvent: false,
+      sendDisplayEvent: true,
     },
     xdm: {
       web: {
@@ -44,6 +61,20 @@ const createClientRequest = (req) => {
       },
       implementationDetails: {
         name: "server-side",
+      },
+    },
+    data: {
+      __adobe: {
+        target: {
+          myAnimal: "dog",
+        },
+      },
+    },
+    meta: {
+      state: {
+        domain: req.host,
+        cookiesEnabled: true,
+        entries: metaEntries,
       },
     },
   };

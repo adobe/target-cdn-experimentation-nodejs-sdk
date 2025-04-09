@@ -1,6 +1,6 @@
 {
   "name": "@adobe/target-cdn-experimentation-nodejs-sdk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Contains the build system and files specific to the NodeJS platform.",
   "type": "module",
   "main": "lib/index.cjs.js",

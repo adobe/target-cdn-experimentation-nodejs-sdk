@@ -57,6 +57,7 @@ const eventNotificationAdaptor = (requestBody, response) => {
         },
       },
     },
+    meta: requestBody?.meta,
   };
 
   return displayEvent;
