@@ -116,6 +116,7 @@ export async function responseProvider(request) {
 
 ### Notes
 - The ECID and LocationHintId have to be saved for each visitor inside the browser to maintain the same A/B experience and to send the Notification events to the same Edge server
+- Check the Demo folder for a complete basic implementation [in the repository](https://github.com/adobe/target-cdn-experimentation-nodejs-sdk/tree/main/packages/sdk-akamai/demo)
 - Differences between [Adobe Target NodeJS](https://experienceleague.adobe.com/en/docs/target-dev/developer/server-side/node-js/overview)
   - Current package uses the WebSDK API's and request/response format instead of the Target one 
   - The rule engine and rules.json format is different; it uses the [@adobe/aep-rules-engine](https://www.npmjs.com/package/@adobe/aep-rules-engine)
