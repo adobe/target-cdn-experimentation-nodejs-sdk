@@ -17,6 +17,7 @@ import { uuid } from "./utils/uuid/index.js";
 import { MESSAGES } from "./messages.js";
 import { RuleEngine } from "./ruleEngine.js";
 import { createUrlContext, createTimingContext } from "./contextProvider.js";
+import { getAepEdgeClusterCookie } from "./utils/cookie.js";
 
 const getRequestIdentity = (namespaceCode) => {
   return (event) => {
@@ -140,13 +141,17 @@ export const sendEvent = async (clientOptions, requestBody) => {
   };
 
   const handle = [createResponseIdentityPayload(event), decisions];
+  const edgeClusterId = getAepEdgeClusterCookie(
+    orgId,
+    requestBody?.meta?.state?.entries,
+  );
 
-  if (locationHintId) {
+  if (locationHintId || edgeClusterId) {
     const locationHint = {
       payload: [
         {
           scope: "EdgeNetwork",
-          hint: locationHintId,
+          hint: edgeClusterId || locationHintId,
           ttlSeconds: 1800,
         },
       ],

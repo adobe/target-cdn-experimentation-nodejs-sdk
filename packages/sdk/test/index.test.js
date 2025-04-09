@@ -32,7 +32,9 @@ const ruleRequesterMock = jest.fn().mockImplementation(() => emptyFunction);
 jest.unstable_mockModule("../src/ruleRequester.js", () => ({
   ruleRequester: ruleRequesterMock,
 }));
-const locationHintRequesterMock = jest.fn().mockImplementation(() => emptyFunction);
+const locationHintRequesterMock = jest
+  .fn()
+  .mockImplementation(() => emptyFunction);
 jest.unstable_mockModule("../src/locationHintRequester.js", () => ({
   locationHintRequester: locationHintRequesterMock,
 }));

@@ -20,7 +20,7 @@ export interface ClientOptions {
   edgeDomain?: string; // default: edge.adobedc.net
   edgeBasePath?: string; // default: ee
   // SPECIFIC TO EDGE WORKER
-  propertyToken: string; // The property token associated with Adobe Target ODD Activities
+  propertyToken?: string; // The property token associated with Adobe Target ODD Activities
   rules?: Record<string, any>; // Inline rules that can be used to evaluate the event
   rulesPoolingInterval?: number; // Interval in second to pool the rules from the server; if not provided the rules are not pooled
   oddEnabled: boolean; // Enable local decisioning or go to the Adobe Target servers

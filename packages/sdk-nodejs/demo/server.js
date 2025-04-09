@@ -24,11 +24,12 @@ const handleGET = async (req, res) => {
     // locationHintId - the locationHintId is used to route the request to the closest Edge Node
     const { ecid, locationHintId } = getPersistedValues(sdkResponse);
 
-    res.setHeader("Content-Type", "application/json");
+    const clusterCookieName = `kndctr_${config.orgId.replace("@", "_")}_cluster`;
     res.setHeader("Set-Cookie", [
       `ECID=${ecid};`,
-      `LOCATION_HINT=${locationHintId};`,
+      `${clusterCookieName}=${locationHintId};`,
     ]);
+    res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify(sdkResponse));
   } catch (error) {
     console.log("error ", error);

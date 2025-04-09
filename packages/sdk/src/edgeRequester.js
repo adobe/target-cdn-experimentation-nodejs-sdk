@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 
 import { uuid } from "./utils/uuid/index.js";
 import { Container, TOKENS } from "./container.js";
+import { getAepEdgeClusterCookie } from "./utils/cookie.js";
 
 const AEP_EDGE_DOMAIN = "edge.adobedc.net";
 const EXP_EDGE_BASE_PATH_PROD = "ee";
@@ -40,13 +41,20 @@ const edgeRequester = async (clientOptions, endpoint, requestBody) => {
   );
 
   const requestId = uuid();
-  const { edgeDomain, edgeBasePath, datastreamId, locationHintId } =
+  const { edgeDomain, edgeBasePath, datastreamId, locationHintId, orgId } =
     clientOptions;
+
+  const event =
+    "interact" === endpoint ? requestBody.event : requestBody?.events?.[0];
+  const edgeClusterId = getAepEdgeClusterCookie(
+    orgId,
+    event?.meta?.state?.entries,
+  );
 
   const requestUrl = [
     getDomain(edgeDomain),
     edgeBasePath || EXP_EDGE_BASE_PATH_PROD,
-    locationHintId || "",
+    edgeClusterId || locationHintId || "",
     "v2",
     `${endpoint}?datastreamId=${datastreamId}&requestId=${requestId}`,
   ]

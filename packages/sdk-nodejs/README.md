@@ -22,8 +22,8 @@ Possible options when creating the `Client`
 ClientOptions {
   datastreamId: string;  // the datastreamId from the Adobe Experience Platform that connects to Adobe Target: e.g ebebf826-a01f-4458-8cec-ef61de241c93
   orgId: string; // the Adobe Target organization ID e.g ADB3LETTERSANDNUMBERS@AdobeOrg
-  propertyToken: string; // the property token associated with the datastream and the Target activities
   oddEnabled: boolean; // true - Enable local decisioning; false - acts as a proxy, all requests go to Adobe Edge servers
+  propertyToken?: string; // the property token associated with the datastream and the Target activities
   edgeDomain?: string; // default: edge.adobedc.net; Override the domain 
   edgeBasePath?: string; // default: ee; 
   rules?: Record<string, any>; // Inline rules that can be used to evaluate the events; Can be retrieved from assets.adobetarget.com
@@ -123,7 +123,7 @@ import { Client } from "@adobe/target-cdn-experimentation-nodejs-sdk";
     "personalization": {
       "sendDisplayEvent": true // send the display event automatically
     },
-    "decisionScopes": ["__view__", "customMbox"]
+    "decisionScopes": ["__view__", "customMbox"],
     "xdm": {
       "identityMap": {
         "ECID": [
@@ -155,10 +155,45 @@ import { Client } from "@adobe/target-cdn-experimentation-nodejs-sdk";
           "mboxParameter": "mboxValue" // global mbox parameter 
         }
       }
+    },
+    "meta": {
+      "state": {
+        "domain": `${req.headers.host}`,
+        "cookiesEnabled": true,
+        "entries": [
+          {
+            "key": "kndctr_<ORG_ID>_AdobeOrg_cluster",
+            "value": "clusterId"
+          }
+        ],
+      },
     }
-
-  },
+  }
 ```
+
+# Target Audiences support
+
+**Supported audience attributes**:
+- [Site Pages](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/site-pages) > "Current page" - only the "URL", "Query" and "Path" options
+- [Geo](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/geo) - only the "Country/Region" option
+- [Custom parameters](https://experienceleague.adobe.com/en/docs/target/using/audiences/create-audiences/categories-audiences/custom-parameters) - you need to make sure that the value of the custom parameter is passed to the `data.__adobe.target.<custom-parameter-name>` object 
+
+**Supported evaluators**
+- Equals
+- Does not equal
+- Is greater than
+- Is greater than or equal to
+- Is less than
+- Is less than or equal to
+- Contains
+- Does not contain
+- Starts with
+- Parameter value is present
+Case sensitivity is not supported. If an audience is defined having "Case sensitive" active for an evaluator, that setting will be ignored.
+
+# Target Offers support
+
+Only [Form-Based Experience Composer](https://experienceleague.adobe.com/en/docs/target/using/experiences/form-experience-composer) offers of type "Create JSON Offer" and "Create HTML Offer" are supported.
 
 
 ### Contributing
