@@ -21,8 +21,8 @@ import { md5 } from "./md5.js";
 
 /**
  * The Client initialization method
- * @param {import("../types/").ClientOptions} clientOptions
- * @returns {Promise<import("../types/").ClientResponse>}
+ * @param {import("../types").ClientOptions} clientOptions - The configuration options for the client
+ * @returns {Promise<import("../types").ClientResponse>} A promise that resolves to the client response object
  */
 export async function Client(clientOptions) {
   Container().registerInstance(TOKENS.RNG, rng);

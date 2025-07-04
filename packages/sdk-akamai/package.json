@@ -2,10 +2,16 @@
   "name": "@adobe/target-cdn-experimentation-akamai-sdk",
   "version": "0.0.3",
   "description": "Contains the build system and files specific to the Akamai platform.",
-  "type": "module",
-  "main": "lib/index.cjs.js",
-  "module": "lib/index.esm.js",
-  "types": "types/index.d.ts",
+  "main": "./lib/index.cjs.js",
+  "module": "./lib/index.esm.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/index.esm.js",
+      "require": "./lib/index.cjs.js",
+      "types": "./types/index.d.ts"
+    }
+  },
   "files": [
     "lib",
     "types"

@@ -1,5 +1,8 @@
 # Change Log
 
+# 0.0.4 (2025-07-04)
+- Improve esm and cjs support 
+
 # 0.0.3 (2025-02-09)
 - Improved Docs, Read.me and demo's
 - Added support for the `meta` WebSDK cookie object for LocationHint
