@@ -1,6 +1,6 @@
 {
   "name": "@adobe/target-cdn-experimentation-akamai-sdk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Contains the build system and files specific to the Akamai platform.",
   "main": "./lib/index.cjs.js",
   "module": "./lib/index.esm.js",
