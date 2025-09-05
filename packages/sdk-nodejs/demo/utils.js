@@ -47,8 +47,6 @@ const createClientRequest = (req) => {
         ECID: [
           {
             id: ecid,
-            authenticatedState: "ambiguous",
-            primary: true,
           },
         ],
       }
@@ -56,34 +54,38 @@ const createClientRequest = (req) => {
 
   return {
     type: "decisioning.propositionFetch",
-    decisionScopes: [
-      "cdn-sdk-mbox-test",
-      "ss-control-test",
-      "previewDemo",
-      "mboxtestmay",
-    ],
+    decisionScopes: ["__view__"],
     personalization: {
       sendDisplayEvent: true,
     },
     xdm: {
       web: {
         webPageDetails: {
-          URL: `${req.protocol}://${req.headers.host}${req.url}`,
+          URL: `${req.protocol || "http"}://${req.headers.host}${req.url}`,
         },
         webReferrer: { URL: "" },
       },
-      identityMap: {
-        ...identityMap,
-      },
+      ...(identityMap ? { identityMap } : {}),
       implementationDetails: {
         name: "server-side",
+        version: "0.0.5",
+        environment: "server",
       },
+      timestamp: new Date().toISOString(),
     },
-    data: {
-      __adobe: {
-        target: {
-          myAnimal: "dog",
-        },
+    query: {
+      identity: {
+        fetch: ["ECID"],
+      },
+      personalization: {
+        schemas: [
+          "https://ns.adobe.com/personalization/default-content-item",
+          "https://ns.adobe.com/personalization/html-content-item",
+          "https://ns.adobe.com/personalization/json-content-item",
+          "https://ns.adobe.com/personalization/redirect-item",
+          "https://ns.adobe.com/personalization/dom-action",
+        ],
+        decisionScopes: ["__view__"],
       },
     },
     meta: {
@@ -107,9 +109,11 @@ const getPersistedValues = (response) => {
   const locationHintIdHandle = response?.handle?.find(
     (payload) =>
       payload.type === "locationHint:result" &&
-      payload?.payload[0]?.scope === "EdgeNetwork",
+      payload?.payload.find((scope) => scope.scope === "EdgeNetwork")?.hint,
   );
-  const locationHintId = locationHintIdHandle?.payload[0]?.hint || "";
+  const locationHintId =
+    locationHintIdHandle?.payload.find((scope) => scope.scope === "EdgeNetwork")
+      ?.hint || "";
 
   return { ecid, locationHintId };
 };

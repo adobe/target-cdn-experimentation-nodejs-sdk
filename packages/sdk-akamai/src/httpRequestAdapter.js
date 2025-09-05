@@ -20,11 +20,47 @@ const createHttpRequestAdapter = () => {
         return null; // No content to return
       }
       if (response.ok) {
-        return await response.json();
+        // Prefer JSON if available, otherwise fall back to text
+        try {
+          return await response.json();
+        } catch {
+          try {
+            return await response.text();
+          } catch {
+            return null;
+          }
+        }
       }
-      logger.log(
-        `Failed to make request for ${url} with options ${JSON.stringify(options)}`,
+
+      // Non-OK: capture response body to aid debugging
+      let errorBody;
+      try {
+        errorBody = await response.json();
+      } catch {
+        try {
+          errorBody = await response.text();
+        } catch {
+          errorBody = undefined;
+        }
+      }
+
+      const error = new Error(
+        `HTTP ${response.status} ${response.statusText} for ${url}`,
       );
+      error.status = response.status;
+      error.statusText = response.statusText;
+      error.url = url;
+      error.body = errorBody;
+
+      logger.log(
+        `Failed HTTP response for ${url} with options ${JSON.stringify(options)}`,
+        {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        },
+      );
+      throw error;
     } catch (error) {
       logger.log(
         `Failed to make request for ${url} with options ${JSON.stringify(options)}`,

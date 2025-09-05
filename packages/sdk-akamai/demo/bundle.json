@@ -1,4 +1,4 @@
 {
-  "edgeworker-version": "0.4",
+  "edgeworker-version": "0.8",
   "description": "Target CDN Experimentation Akamai client Demo"
 }

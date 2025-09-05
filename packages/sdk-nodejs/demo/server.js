@@ -4,10 +4,10 @@ import { rules } from "./rules.js";
 import { createClientRequest, getPersistedValues } from "./utils.js";
 
 const config = {
-  orgId: "ORG_ID",
-  datastreamId: "DATASTREAM_ID",
+  orgId: "692D3C645C5CDA980A495CB3@AdobeOrg",
+  datastreamId: "0a99f011-c398-43cd-a6e4-3bb05ed8eb62",
   oddEnabled: true,
-  rules: rules,
+  rules: rules
 };
 
 const client = await Client(config);
@@ -17,7 +17,9 @@ const handleGET = async (req, res) => {
     const alloyEvent = createClientRequest(req);
 
     // retrieve the response that holds the consequences
+    console.log("calling sendEvent", req.url);
     const sdkResponse = await client.sendEvent(alloyEvent);
+    console.log("sdkResponse", JSON.stringify(sdkResponse, null, 2));
 
     // retrieve the ECID and locationHintId; both values have to be persisted in the browser across requests
     // ECID - identifies each unique visitor with an unique id
@@ -30,7 +32,7 @@ const handleGET = async (req, res) => {
       `${clusterCookieName}=${locationHintId};`,
     ]);
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify(sdkResponse));
+    res.end(JSON.stringify({ sdkResponse }, null, 2));
   } catch (error) {
     console.log("error ", error);
     res.writeHead(500, { "Content-Type": "text/plain" });
@@ -41,7 +43,12 @@ const handleGET = async (req, res) => {
 const server = createServer((req, res) => {
   switch (req.method) {
     case "GET":
-      handleGET(req, res);
+      if (req.url.includes("favicon")) {
+        res.writeHead(200, { "Content-Type": "image/x-icon" });
+        res.end();
+      } else {
+        handleGET(req, res);
+      }
       break;
     default:
       res.writeHead(405, { "Content-Type": "text/plain" });

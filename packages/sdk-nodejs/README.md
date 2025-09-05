@@ -92,6 +92,8 @@ import { Client } from "@adobe/target-cdn-experimentation-nodejs-sdk";
         },
         implementationDetails: {
           name: "server-side",
+          version: "0,.0.4",
+          environment: "server"
         },
       },
     }
@@ -147,8 +149,10 @@ import { Client } from "@adobe/target-cdn-experimentation-nodejs-sdk";
         }
       },
       "implementationDetails": {
-        "name": "server-side"
-      }
+        "name": "server-side",
+        "version": "0.0.5",
+        "environment": "server",
+      },
     },
     "data": {
       "__adobe": {

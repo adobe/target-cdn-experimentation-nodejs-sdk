@@ -157,8 +157,10 @@ export async function responseProvider(request) {
         }
       },
       "implementationDetails": {
-        "name": "server-side"
-      }
+        "name": "server-side",
+        "version": "0.0.5",
+        "environment": "server",
+      },
     },
     "data": {
       "__adobe": {

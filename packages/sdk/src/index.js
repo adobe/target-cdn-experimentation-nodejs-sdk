@@ -19,6 +19,7 @@ import { MESSAGES } from "./messages.js";
 import { Container, TOKENS } from "./container.js";
 import { eventNotificationAdaptor } from "./utils/eventNotificationAdaptor.js";
 import { locationHintRequester } from "./locationHintRequester.js";
+import { incrementValue } from "./utils/debug.js";
 
 /**
  * The Client initialization method
@@ -26,26 +27,48 @@ import { locationHintRequester } from "./locationHintRequester.js";
  * @returns {Promise<import("../types/").ClientResponse>}
  */
 async function BaseClient(clientOptions) {
+  const scheduler = Container().getInstance(TOKENS.SCHEDULER);
+  const logAdapterInstance = Container().getInstance(TOKENS.LOGGER);
+
   const options = { ...clientOptions };
+  options.debug = {
+    startTimeClient: new Date().toISOString(),
+    numberOfStartCalls: incrementValue(options.debug?.numberOfStartCalls ?? 0),
+  };
+
   const sendEventFunc = options.oddEnabled ? sendEvent : remoteSendEvent;
 
   if (options.oddEnabled) {
-    options.locationHintId = await locationHintRequester(options);
+    const { locationHintId, stateStore, locationHint } =
+      await locationHintRequester(options);
+    options.debug.locationHintRequesterCalls = incrementValue(
+      options?.debug?.locationHintRequesterCalls ?? 0,
+    );
+
+    options.locationHintId = locationHintId;
+    options.locationHint = locationHint;
+    options.stateStore = stateStore;
 
     if (!options.rules) {
       const rules = await ruleRequester(options);
+      options.debug.numberOfRulesCalls = incrementValue(
+        options?.debug?.numberOfRulesCalls ?? 0,
+      );
       if (!rules) {
         throw new Error(MESSAGES.RULES_ENGINE.EMPTY_RULES_ERROR);
       }
       options.rules = rules;
     }
 
-    if (options.rulesPoolingInterval) {
+    if (scheduler && options.rulesPoolingInterval) {
       const intervalInMilliseconds = options.rulesPoolingInterval * 1000;
-      options.rulesPoolingIntervalId = setInterval(async () => {
+      options.rulesPoolingIntervalId = scheduler.start(async () => {
+        options.debug.numberOfRulesPoolingIntervalCalls = incrementValue(
+          options?.debug?.numberOfRulesPoolingIntervalCalls ?? 0,
+        );
         const rules = await ruleRequester(options);
         if (!rules) {
-          clearInterval(options.rulesPoolingIntervalId);
+          scheduler.stop(options.rulesPoolingIntervalId);
           throw new Error(MESSAGES.RULES_ENGINE.EMPTY_RULES_ERROR);
         }
         options.rules = rules;
@@ -55,25 +78,66 @@ async function BaseClient(clientOptions) {
 
     options.rulesEngine = RuleEngine(options);
     options.stopRulesPoolingInterval = () => {
-      clearInterval(options.rulesPoolingIntervalId);
+      if (scheduler && options.rulesPoolingIntervalId) {
+        options.debug.numberOfStopRulesPoolingIntervalCalls = incrementValue(
+          options.debug.numberOfStopRulesPoolingIntervalCalls ?? 0,
+        );
+        scheduler.stop(options.rulesPoolingIntervalId);
+      }
     };
   }
 
   return {
     sendEvent: async (requestBody) => {
+      if (scheduler) {
+        options.debug.numberOfSchedulerCalls = incrementValue(
+          options.debug.numberOfSchedulerCalls ?? 0,
+        );
+        scheduler.maybeRefresh();
+      }
+      options.debug.numberOfSendEventCalls = incrementValue(
+        options.debug.numberOfSendEventCalls ?? 0,
+      );
+
       const response = await sendEventFunc(options, requestBody);
-      if (requestBody?.personalization?.sendDisplayEvent) {
+      const numberOfPersonalizationDecisions = response.handle.find(
+        (handle) => handle.type === "personalization:decisions",
+      );
+      if (
+        requestBody?.personalization?.sendDisplayEvent &&
+        numberOfPersonalizationDecisions?.payload?.length > 0
+      ) {
         const displayEvent = eventNotificationAdaptor(requestBody, response);
+        options.debug.numberOfAutomaticSendNotificationCalls = incrementValue(
+          options.debug.numberOfAutomaticSendNotificationCalls ?? 0,
+        );
         if (displayEvent) {
-          sendNotification(options, displayEvent);
+          sendNotification(options, displayEvent).catch((error) => {
+            if (options?.debug?.logEdgeErrors) {
+              logAdapterInstance.log(
+                "edgeRequester error (sendNotification fire-and-forget)",
+                {
+                  message: error?.message,
+                  status: error?.status,
+                  statusText: error?.statusText,
+                  url: error?.url,
+                  body: error?.body,
+                },
+              );
+            }
+          });
         }
       }
       return response;
     },
     sendNotification: async (requestBody) => {
+      options.debug.numberOfManualSendNotificationCalls = incrementValue(
+        options.debug.numberOfManualSendNotificationCalls ?? 0,
+      );
       return sendNotification(options, requestBody);
     },
     stopRulesPoolingInterval: () => options?.stopRulesPoolingInterval(),
+    getDebugInfo: () => options?.debug,
   };
 }
 

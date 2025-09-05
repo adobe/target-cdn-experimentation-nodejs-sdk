@@ -10,22 +10,9 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-/**
- * The SendEvent method that returns a decision
- * @param {import("../types/index.js").ClientOptions} clientOptions
- * @returns {import("../types/index.js").SendEvent}
- */
-
-import { edgeRequester } from "./edgeRequester.js";
-
-export const remoteSendEvent = async (clientOptions, requestBody) => {
-  const adaptedRequest = {
-    ...requestBody,
-    event: {
-      xdm: requestBody.xdm,
-    },
-    query: requestBody.query,
-    meta: requestBody.meta,
-  };
-  return await edgeRequester(clientOptions, "interact", adaptedRequest);
-};
+export function createNodeScheduler() {
+  const start = (fn, intervalMs) => setInterval(fn, intervalMs);
+  const stop = (id) => clearInterval(id);
+  const maybeRefresh = async () => null; // noop in Node package
+  return { start, stop, maybeRefresh };
+}

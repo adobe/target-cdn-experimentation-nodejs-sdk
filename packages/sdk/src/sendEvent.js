@@ -84,7 +84,7 @@ const addContext = (event) => {
 
 export const sendEvent = async (clientOptions, requestBody) => {
   const logAdapterInstance = Container().getInstance(TOKENS.LOGGER);
-  const { orgId, locationHintId } = { ...clientOptions };
+  const { orgId, locationHintId, locationHint, stateStore } = clientOptions;
   const requestEcid = getRequestEcidIdentity(requestBody);
 
   let ecid = requestEcid || [{ id: "" }];
@@ -114,7 +114,8 @@ export const sendEvent = async (clientOptions, requestBody) => {
   let rulesConsequences = [];
   try {
     const decisionScopes = requestBody?.decisionScopes ||
-      requestBody?.personalization?.decisionScopes || ["__view__"];
+      requestBody?.personalization?.decisionScopes ||
+      requestBody?.query?.personalization?.decisionScopes || ["__view__"];
     const rulesByDecisionScope = clientOptions.rules.rules
       .map((rule) => {
         const consequencesForDecisionScope = rule.consequences.filter(
@@ -146,20 +147,25 @@ export const sendEvent = async (clientOptions, requestBody) => {
     requestBody?.meta?.state?.entries,
   );
 
-  if (locationHintId || edgeClusterId) {
-    const locationHint = {
+  if (edgeClusterId && edgeClusterId !== locationHintId) {
+    handle.push({
       payload: [
         {
           scope: "EdgeNetwork",
-          hint: edgeClusterId || locationHintId,
+          hint: edgeClusterId,
           ttlSeconds: 1800,
         },
       ],
       type: "locationHint:result",
-    };
+    });
+  } else if (locationHint) {
     handle.push(locationHint);
   }
 
+  if (stateStore) {
+    handle.push(stateStore);
+  }
+  
   return {
     requestId: uuid(),
     handle,

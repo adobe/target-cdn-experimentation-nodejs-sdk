@@ -30,7 +30,12 @@ describe("remoteSendEvent", () => {
   it("should be called with the interact endpoint", () => {
     remoteSendEvent(clientOptions, requestBody);
     expect(edgeRequesterMock).toBeCalledWith(clientOptions, "interact", {
-      event: requestBody,
+      ...requestBody,
+      event: {
+        xdm: requestBody.xdm,
+      },
+      query: requestBody.query,
+      meta: requestBody.meta,
     });
   });
 });

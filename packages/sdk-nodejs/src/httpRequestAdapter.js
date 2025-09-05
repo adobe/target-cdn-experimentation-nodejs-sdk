@@ -18,8 +18,43 @@ const createFetchAdapter = () => {
         return null; // No content to return
       }
       if (response.ok) {
-        return await response.json();
+        // Try JSON first, fall back to text if not JSON
+        try {
+          return await response.json();
+        } catch {
+          return await response.text();
+        }
       }
+
+      // Non-OK: capture response body to aid debugging
+      let errorBody;
+      try {
+        const ct = response.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          errorBody = await response.json();
+        } else {
+          errorBody = await response.text();
+        }
+      } catch {
+        errorBody = undefined;
+      }
+
+      const error = new Error(
+        `HTTP ${response.status} ${response.statusText} for ${url}`,
+      );
+      error.status = response.status;
+      error.statusText = response.statusText;
+      error.url = url;
+      error.body = errorBody;
+      console.log(
+        `Failed HTTP response for ${url} with options ${JSON.stringify(options)}`,
+        {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        },
+      );
+      throw error;
     } catch (error) {
       console.log(
         `Failed to make request for ${url} with options ${JSON.stringify(options)}`,

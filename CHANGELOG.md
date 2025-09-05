@@ -1,5 +1,11 @@
 # Change Log
 
+# 0.0.5 (2025-09-05)
+- Fix Akamai scheduler implementation
+- Return all `state:store` entries when doing OnDeviceDecisioning
+- Throw errors for unsuccesfull requests
+- Update Docs
+ 
 # 0.0.4 (2025-07-04)
 - Improve esm and cjs support 
 
