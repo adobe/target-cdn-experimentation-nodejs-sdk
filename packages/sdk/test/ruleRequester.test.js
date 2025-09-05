@@ -31,7 +31,9 @@ const { ruleRequester } = await import("../src/ruleRequester.js");
 describe("ruleRequester", () => {
   const clientOptions = {
     orgId: "test-org-id",
+    propertyToken: "test-property",
     datastreamId: "test-datastream",
+    debug: {},
   };
   const expectedOptions = {
     headers: {
@@ -54,7 +56,7 @@ describe("ruleRequester", () => {
   it("should be called with fallback to default values for Domain and Path", async () => {
     await ruleRequester(clientOptions);
     expect(makeRequestMock).toBeCalledWith(
-      "https://assets.adobetarget.com/aep-odd-rules/test-org-id/production/v1/rules.json",
+      "https://assets.adobetarget.com/aep-odd-rules/test-org-id/production/v1/test-property/rules.json",
       expectedOptions,
     );
   });
@@ -66,7 +68,7 @@ describe("ruleRequester", () => {
     };
     ruleRequester(customClientOptions);
     expect(makeRequestMock).toBeCalledWith(
-      "https://custom-domain/aep-odd-rules/test-org-id/production/v1/rules.json",
+      "https://custom-domain/aep-odd-rules/test-org-id/production/v1/test-property/rules.json",
       expectedOptions,
     );
   });
@@ -77,7 +79,7 @@ describe("ruleRequester", () => {
     };
     ruleRequester(customClientOptions);
     expect(makeRequestMock).toBeCalledWith(
-      "/aep-odd-rules/test-org-id/production/v1/rules.json",
+      "/aep-odd-rules/test-org-id/production/v1/test-property/rules.json",
       expectedOptions,
     );
   });

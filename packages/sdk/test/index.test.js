@@ -11,12 +11,37 @@ governing permissions and limitations under the License.
 */
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 
+const actualContainer = await import("../src/container.js");
+jest.unstable_mockModule("../src/container.js", async () => {
+  const scheduler = {
+    start: jest.fn(() => ({ id: "1" })),
+    stop: jest.fn(),
+    maybeRefresh: jest.fn(),
+  };
+  const logger = { log: jest.fn() };
+  return {
+    TOKENS: actualContainer.TOKENS,
+    Container: jest.fn().mockImplementation(() => ({
+      getInstance: (name) => {
+        switch (name) {
+          case actualContainer.TOKENS.SCHEDULER:
+            return scheduler;
+          case actualContainer.TOKENS.LOGGER:
+            return logger;
+          default:
+            throw new Error("Unsupported token in test: " + name);
+        }
+      },
+    })),
+  };
+});
+
 const emptyFunction = () => Promise.resolve();
-const sendEventMock = jest.fn().mockImplementation(() => emptyFunction);
+const sendEventMock = jest.fn().mockResolvedValue({ handle: [] });
 jest.unstable_mockModule("../src/sendEvent.js", () => ({
   sendEvent: sendEventMock,
 }));
-const remoteSendEventMock = jest.fn().mockImplementation(() => emptyFunction);
+const remoteSendEventMock = jest.fn().mockResolvedValue({ handle: [] });
 jest.unstable_mockModule("../src/remoteSendEvent.js", () => ({
   remoteSendEvent: remoteSendEventMock,
 }));

@@ -32,7 +32,7 @@ const handleGET = async (req, res) => {
       `${clusterCookieName}=${locationHintId};`,
     ]);
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ sdkResponse, debugInfo }, null, 2));
+    res.end(JSON.stringify({ sdkResponse }, null, 2));
   } catch (error) {
     console.log("error ", error);
     res.writeHead(500, { "Content-Type": "text/plain" });

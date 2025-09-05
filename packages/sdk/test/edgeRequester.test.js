@@ -36,6 +36,7 @@ describe("edgeRequester", () => {
   const clientOptions = {
     orgId: "test-org-id",
     datastreamId: "test-datastream",
+    debug: {},
   };
   const endpoint = "test-endpoint";
   const requestBody = {

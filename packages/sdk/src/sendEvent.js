@@ -158,14 +158,14 @@ export const sendEvent = async (clientOptions, requestBody) => {
       ],
       type: "locationHint:result",
     });
-  } else {
+  } else if (locationHint) {
     handle.push(locationHint);
   }
 
   if (stateStore) {
     handle.push(stateStore);
   }
-
+  
   return {
     requestId: uuid(),
     handle,
