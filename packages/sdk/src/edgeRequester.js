@@ -65,6 +65,11 @@ const edgeRequester = async (clientOptions, endpoint, requestBody) => {
   const headers = {
     ...DEFAULT_REQUEST_HEADERS,
   };
+  
+  clientOptions.debug[endpoint] = {
+    requestUrl,
+    requestBody,
+  };
 
   return httpRequestAdapterInstance.makeRequest(requestUrl, {
     headers,

@@ -53,7 +53,11 @@ const ruleRequester = async (clientOptions) => {
     .trim();
 
   const headers = {
-    ...DEFAULT_REQUEST_HEADERS
+    ...DEFAULT_REQUEST_HEADERS,
+  };
+
+  clientOptions.debug.ruleRequester = {
+    requestUrl
   };
 
   try {

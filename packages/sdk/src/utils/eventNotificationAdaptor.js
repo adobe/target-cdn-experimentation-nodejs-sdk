@@ -43,9 +43,10 @@ const eventNotificationAdaptor = (requestBody, response) => {
   }, {});
 
   const displayEvent = {
+    ...requestBody,
     xdm: {
       ...requestBody.xdm,
-      identityMap: identityMap,
+      ...(identityMap ? { identityMap } : {}),
       eventType: "decisioning.propositionDisplay",
       timestamp: new Date().toISOString(),
       _experience: {
@@ -57,7 +58,6 @@ const eventNotificationAdaptor = (requestBody, response) => {
         },
       },
     },
-    meta: requestBody?.meta,
   };
 
   return displayEvent;

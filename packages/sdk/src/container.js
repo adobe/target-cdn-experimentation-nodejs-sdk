@@ -17,6 +17,7 @@ export const TOKENS = {
   LOGGER: "LOGGER",
   HTTP_CLIENT: "HTTP_CLIENT",
   MD5: "MD5",
+  SCHEDULER: "SCHEDULER",
 };
 
 const createRegistry = () => {

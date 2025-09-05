@@ -33,18 +33,29 @@ export const locationHintRequester = async (clientOptions) => {
   };
   const response = await edgeRequester(clientOptions, "interact", dummyRequest);
 
+  let stateStore = null;
+  let locationHint = null;
   let locationHintId = null;
 
   if (response && response.handle && Array.isArray(response.handle)) {
+    const stateStorePayload = response.handle.find(
+      (payload) => payload && payload.type === "state:store",
+    );
+
+    if (stateStorePayload && stateStorePayload.payload) {
+      stateStore = stateStorePayload;
+      stateStore.payload = stateStorePayload.payload.filter((payload) =>
+        payload.key.includes("_cluster"),
+      );
+    }
+
     const locationHintPayload = response.handle.find(
       (payload) => payload && payload.type === "locationHint:result",
     );
 
-    if (
-      locationHintPayload &&
-      locationHintPayload.payload &&
-      Array.isArray(locationHintPayload.payload)
-    ) {
+    if (locationHintPayload && locationHintPayload.payload) {
+      locationHint = locationHintPayload;
+
       const edgeNetworkScope = locationHintPayload.payload.find(
         (scope) => scope && scope.scope === "EdgeNetwork",
       );
@@ -55,5 +66,5 @@ export const locationHintRequester = async (clientOptions) => {
     }
   }
 
-  return locationHintId;
+  return { locationHintId, stateStore, locationHint };
 };

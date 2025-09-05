@@ -4,6 +4,7 @@
   "description": "Contains the build system and files specific to the Akamai platform.",
   "main": "./lib/index.cjs.js",
   "module": "./lib/index.esm.js",
+  "type": "module",
   "types": "./types/index.d.ts",
   "exports": {
     ".": {

@@ -31,7 +31,7 @@ const { ruleRequester } = await import("../src/ruleRequester.js");
 describe("ruleRequester", () => {
   const clientOptions = {
     orgId: "test-org-id",
-    datastreamId: "test-datastream"
+    datastreamId: "test-datastream",
   };
   const expectedOptions = {
     headers: {

@@ -19,6 +19,7 @@ import {
 import { rng } from "./uuid/rng.js";
 import { httpRequestAdapterInstance } from "./httpRequestAdapter.js";
 import { md5 } from "./md5.js";
+import { createAkamaiScheduler } from "./scheduler.js";
 
 /**
  * The Client initialization method
@@ -30,5 +31,6 @@ export async function Client(clientOptions) {
   Container().registerInstance(TOKENS.HTTP_CLIENT, httpRequestAdapterInstance);
   Container().registerInstance(TOKENS.LOGGER, logger);
   Container().registerInstance(TOKENS.MD5, md5);
+  Container().registerInstance(TOKENS.SCHEDULER, createAkamaiScheduler());
   return BaseClient(clientOptions);
 }
