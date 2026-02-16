@@ -26,12 +26,13 @@ export async function responseProvider(request) {
     // retrieve the ECID and locationHintId; both values have to be persisted in the browser across requests
     // ECID - identifies each unique visitor with an unique id
     // locationHintId - the locationHintId is used to route the request to the closest Edge Node
-    const { ecid, locationHintId } = getPersistedValues(sdkResponse);
+    const { ecid, locationHintId, identityCookieValue } = getPersistedValues(sdkResponse);
 
     const response = `
     <script>
       document.cookie = "ECID=${ecid}; path=/";
       document.cookie = "kndctr_${CONFIG.orgId.replace("@", "_")}_cluster=${locationHintId}; path=/";
+      document.cookie = "kndctr_${CONFIG.orgId.replace("@", "_")}_identity=${identityCookieValue}; path=/";
     </script>
     <pre>${JSON.stringify(alloyEvent, " ", 2)}</pre>
     <pre>${JSON.stringify(sdkResponse, " ", 2)}</pre>

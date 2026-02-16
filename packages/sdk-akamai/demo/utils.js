@@ -52,12 +52,10 @@ const createClientRequest = (req, config) => {
       sendDisplayEvent: true,
     },
     xdm: {
+      ...(identityMap && { identityMap }),
       web: {
         webPageDetails: { URL: `${req.scheme}://${req.host}${req.url}` },
         webReferrer: { URL: "" },
-      },
-      identityMap: {
-        ...identityMap,
       },
       implementationDetails: {
         name: "server-side",
@@ -118,8 +116,15 @@ const getPersistedValues = (response) => {
   const locationHintId =
     locationHintIdHandle?.payload.find((scope) => scope.scope === "EdgeNetwork")
       ?.hint || "";
+  
+  const identityCookieValueHandle = response?.handle?.find(
+    (payload) =>
+      payload.type === "state:store"
+  );
+  const identityCookieValue = identityCookieValueHandle?.payload.find((entry) => entry.key.includes("_identity"))?.value || "";
 
-  return { ecid, locationHintId };
+
+  return { ecid, locationHintId, identityCookieValue };
 };
 
 export { createClientRequest, getPersistedValues };

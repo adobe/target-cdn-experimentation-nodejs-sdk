@@ -24,12 +24,14 @@ const handleGET = async (req, res) => {
     // retrieve the ECID and locationHintId; both values have to be persisted in the browser across requests
     // ECID - identifies each unique visitor with an unique id
     // locationHintId - the locationHintId is used to route the request to the closest Edge Node
-    const { ecid, locationHintId } = getPersistedValues(sdkResponse);
+    const { ecid, locationHintId, identityCookieValue } = getPersistedValues(sdkResponse);
 
     const clusterCookieName = `kndctr_${config.orgId.replace("@", "_")}_cluster`;
+    const identityCookieName = `kndctr_${config.orgId.replace("@", "_")}_identity`;
     res.setHeader("Set-Cookie", [
       `ECID=${ecid};`,
       `${clusterCookieName}=${locationHintId};`,
+      `${identityCookieName}=${identityCookieValue};`,
     ]);
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify({ sdkResponse }, null, 2));

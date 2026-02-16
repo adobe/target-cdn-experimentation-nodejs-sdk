@@ -18,6 +18,12 @@ import { MESSAGES } from "./messages.js";
 import { RuleEngine } from "./ruleEngine.js";
 import { createUrlContext, createTimingContext } from "./contextProvider.js";
 import { getAepEdgeClusterCookie } from "./utils/cookie.js";
+import { createIdentityCookieValue } from "./utils/encodeIdentityCookie.js";
+import {
+  getIdentityCookieName,
+  getClusterCookieName,
+} from "./utils/getCookieName.js";
+import { getEcidFromStateEntries } from "./utils/decodeIdentityCookie.js";
 
 const getRequestIdentity = (namespaceCode) => {
   return (event) => {
@@ -86,14 +92,35 @@ export const sendEvent = async (clientOptions, requestBody) => {
   const logAdapterInstance = Container().getInstance(TOKENS.LOGGER);
   const { orgId, locationHintId, locationHint, stateStore } = clientOptions;
   const requestEcid = getRequestEcidIdentity(requestBody);
+  const requestFpid = getRequestFpidIdentity(requestBody);
 
+  console.log("requestEcid", requestEcid);
   let ecid = requestEcid || [{ id: "" }];
+  let ecidSource = null; // Track how ECID was obtained
 
   if (!requestEcid) {
-    const requestFpid = getRequestFpidIdentity(requestBody);
-    ecid[0].id = requestFpid
-      ? generateEcidFromFpid(orgId, requestFpid[0].id)
-      : generateECID();
+    // Identity cookie is ONLY checked when identityMap has no ECID (matching Konductor logic)
+    const ecidFromCookie = getEcidFromStateEntries(
+      orgId,
+      requestBody?.meta?.state?.entries,
+    );
+
+    if (ecidFromCookie) {
+      // Use ECID from identity cookie
+      ecid[0].id = ecidFromCookie;
+      ecidSource = "RECEIVED_IN_REQUEST"; // From existing identity
+    } else if (requestFpid) {
+      // Generate from FPID
+      ecid[0].id = generateEcidFromFpid(orgId, requestFpid[0].id);
+      ecidSource = "FIRST_PARTY_ID";
+    } else {
+      // Generate new random ECID
+      ecid[0].id = generateECID();
+      ecidSource = "RANDOM";
+    }
+  } else {
+    // ECID was provided in identityMap
+    ecidSource = "RECEIVED_IN_REQUEST";
   }
 
   const event = addContext({
@@ -162,10 +189,82 @@ export const sendEvent = async (clientOptions, requestBody) => {
     handle.push(locationHint);
   }
 
-  if (stateStore) {
-    handle.push(stateStore);
+  // Build state:store payload following Konductor's logic
+  const identityCookieName = getIdentityCookieName(orgId);
+  const clusterCookieName = getClusterCookieName(orgId);
+  const ecidValue = event.xdm.identityMap.ECID[0].id;
+
+  // Find existing cookies in request
+  const existingIdentityCookie = requestBody?.meta?.state?.entries?.find(
+    (entry) => entry.key === identityCookieName,
+  );
+  const existingClusterCookie = requestBody?.meta?.state?.entries?.find(
+    (entry) => entry.key === clusterCookieName,
+  );
+
+  // Extract ECID from existing identity cookie if present
+  const ecidFromExistingIdentity = existingIdentityCookie
+    ? getEcidFromStateEntries(orgId, [existingIdentityCookie])
+    : null;
+
+  const stateStorePayload = [];
+
+  // 1. Identity Cookie Logic (matching Konductor's writeRequired + write methods)
+  if (existingIdentityCookie && ecidFromExistingIdentity === ecidValue) {
+    // ECID matches existing identity cookie - preserve it exactly to maintain metadata
+    // This matches Konductor's logic: stored.copy(ecid = value, writeTime = Instant.now())
+    stateStorePayload.push(existingIdentityCookie);
+  } else {
+    // Either no identity cookie exists, or ECID has changed - generate new identity cookie
+    // This matches Konductor's logic for creating new StoredIdentity with fresh metadata
+    const regionValue = locationHintId || existingClusterCookie?.value || "";
+    //Identity cookie format is base64-encoded protobuf 
+    //identity cookie will will contain ecid, metadata, and writeTime
+    const identityCookieValue = createIdentityCookieValue(ecidValue, {
+      isNew: ecidSource === "RANDOM", // Only true for newly generated ECIDs
+      region: regionValue.toUpperCase(), // Region must be uppercase to match Konductor (e.g., "IRL1" not "irl1")
+      source: ecidSource, // Track how ECID was obtained
+    });
+
+    stateStorePayload.push({
+      key: identityCookieName,
+      value: identityCookieValue,
+      maxAge: 34128000, // ~395 days in seconds
+    });
   }
-  
+
+  // 2. Cluster Cookie Logic
+  // Cluster should come from: existing cluster cookie > locationHintId > edgeClusterId
+  const clusterValue =
+    existingClusterCookie?.value || locationHintId || edgeClusterId;
+
+  if (clusterValue) {
+    stateStorePayload.push({
+      key: clusterCookieName,
+      value: clusterValue,
+      maxAge: 1800, // 30 minutes in seconds
+    });
+  }
+
+  // 3. Merge other stateStore entries (excluding identity & cluster which we've already handled)
+  // This is for any additional cookies from locationHintRequester
+  if (stateStore?.payload) {
+    stateStore.payload.forEach((entry) => {
+      if (
+        entry.key !== identityCookieName &&
+        entry.key !== clusterCookieName
+      ) {
+        stateStorePayload.push(entry);
+      }
+    });
+  }
+
+  // Add state:store handle
+  handle.push({
+    type: "state:store",
+    payload: stateStorePayload,
+  });
+
   return {
     requestId: uuid(),
     handle,
