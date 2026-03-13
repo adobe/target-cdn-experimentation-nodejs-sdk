@@ -472,4 +472,120 @@ describe("sendEvent", () => {
     );
     expect(identityHandle.payload[0].id).toBe("mocked-ecid");
   });
+
+  it("should preserve existing identity cookie when ECID matches and write time is within 24h", async () => {
+    ruleEngineMock.mockReturnValue([]);
+
+    const { createIdentityCookieValue } = await import(
+      "../src/utils/encodeIdentityCookie.js"
+    );
+    const testEcid = "test-ecid";
+    const identityCookieValue = createIdentityCookieValue(testEcid, {
+      isNew: false,
+      region: "OR2",
+      source: "RECEIVED_IN_REQUEST",
+    });
+
+    const requestBodyWithRecentCookie = {
+      type: "decisioning.propositionFetch",
+      xdm: {
+        identityMap: {
+          ECID: [{ id: testEcid }],
+        },
+      },
+      meta: {
+        state: {
+          entries: [
+            {
+              key: "kndctr_test-org-id_identity",
+              value: identityCookieValue,
+            },
+          ],
+        },
+      },
+    };
+
+    const request = await sendEvent(
+      clientOptions,
+      requestBodyWithRecentCookie,
+    );
+
+    const stateStoreHandle = request.handle.find(
+      (h) => h.type === "state:store",
+    );
+    const identityEntry = stateStoreHandle.payload.find(
+      (e) => e.key === "kndctr_test-org-id_identity",
+    );
+    expect(identityEntry).toBeDefined();
+    expect(identityEntry.value).toBe(identityCookieValue);
+  });
+
+  it("should refresh identity cookie when ECID matches but write time is older than 24h", async () => {
+    ruleEngineMock.mockReturnValue([]);
+
+    const {
+      encodeIdentityProtobuf,
+      DEVICE_TYPE,
+      SOURCE,
+    } = await import("../src/utils/encodeIdentityCookie.js");
+    const { bytesToBase64 } = await import("../src/utils/base64.js");
+    const { extractFullIdentityFromIdentityCookie } = await import(
+      "../src/utils/decodeIdentityCookie.js"
+    );
+
+    const testEcid = "test-ecid";
+    const oldWriteTime = Date.now() - 25 * 60 * 60 * 1000;
+    const metadata = {
+      createdAt: oldWriteTime,
+      isNew: false,
+      deviceType: DEVICE_TYPE.UNKNOWN,
+      source: SOURCE.RECEIVED_IN_REQUEST,
+      region: "OR2",
+    };
+    const identityBytes = encodeIdentityProtobuf(testEcid, {
+      metadata,
+      writeTime: oldWriteTime,
+    });
+    const oldIdentityCookieValue = bytesToBase64(identityBytes);
+
+    const requestBodyWithOldCookie = {
+      type: "decisioning.propositionFetch",
+      xdm: {
+        identityMap: {
+          ECID: [{ id: testEcid }],
+        },
+      },
+      meta: {
+        state: {
+          entries: [
+            {
+              key: "kndctr_test-org-id_identity",
+              value: oldIdentityCookieValue,
+            },
+          ],
+        },
+      },
+    };
+
+    const request = await sendEvent(
+      clientOptions,
+      requestBodyWithOldCookie,
+    );
+
+    const stateStoreHandle = request.handle.find(
+      (h) => h.type === "state:store",
+    );
+    const identityEntry = stateStoreHandle.payload.find(
+      (e) => e.key === "kndctr_test-org-id_identity",
+    );
+    expect(identityEntry).toBeDefined();
+    expect(identityEntry.value).not.toBe(oldIdentityCookieValue);
+    expect(identityEntry.maxAge).toBe(34128000);
+
+    const refreshed = extractFullIdentityFromIdentityCookie(identityEntry.value);
+    expect(refreshed.ecid).toBe(testEcid);
+    expect(refreshed.write_time).toBeGreaterThanOrEqual(
+      Date.now() - 5000,
+    );
+  });
 });

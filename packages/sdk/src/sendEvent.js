@@ -23,7 +23,10 @@ import {
   getIdentityCookieName,
   getClusterCookieName,
 } from "./utils/getCookieName.js";
-import { getEcidFromStateEntries } from "./utils/decodeIdentityCookie.js";
+import {
+  getEcidFromStateEntries,
+  extractFullIdentityFromIdentityCookie,
+} from "./utils/decodeIdentityCookie.js";
 
 const getRequestIdentity = (namespaceCode) => {
   return (event) => {
@@ -210,10 +213,34 @@ export const sendEvent = async (clientOptions, requestBody) => {
   const stateStorePayload = [];
 
   // 1. Identity Cookie Logic (matching Konductor's writeRequired + write methods)
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
   if (existingIdentityCookie && ecidFromExistingIdentity === ecidValue) {
-    // ECID matches existing identity cookie - preserve it exactly to maintain metadata
-    // This matches Konductor's logic: stored.copy(ecid = value, writeTime = Instant.now())
-    stateStorePayload.push(existingIdentityCookie);
+    // ECID matches existing identity cookie - preserve or refresh based on write time
+    const fullIdentity = extractFullIdentityFromIdentityCookie(
+      existingIdentityCookie.value,
+    );
+    const writeTimeMs = fullIdentity?.write_time ?? 0;
+    const isWriteTimeOlderThan24h =
+      typeof writeTimeMs === "number" &&
+      Date.now() - writeTimeMs > TWENTY_FOUR_HOURS_MS;
+
+    if (isWriteTimeOlderThan24h) {
+      // Refresh cookie metadata and write time, keep ECID the same
+      const regionValue = locationHintId || existingClusterCookie?.value || "";
+      const identityCookieValue = createIdentityCookieValue(ecidValue, {
+        isNew: false,
+        region: regionValue.toUpperCase(),
+        source: ecidSource,
+      });
+      stateStorePayload.push({
+        key: identityCookieName,
+        value: identityCookieValue,
+        maxAge: 34128000,
+      });
+    } else {
+      stateStorePayload.push(existingIdentityCookie);
+    }
   } else {
     // Either no identity cookie exists, or ECID has changed - generate new identity cookie
     // This matches Konductor's logic for creating new StoredIdentity with fresh metadata
