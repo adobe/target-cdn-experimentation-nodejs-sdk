@@ -96,12 +96,16 @@ export const sendEvent = async (clientOptions, requestBody) => {
   const { orgId, locationHintId, locationHint, stateStore } = clientOptions;
   const requestEcid = getRequestEcidIdentity(requestBody);
   const requestFpid = getRequestFpidIdentity(requestBody);
+  const hasValidRequestEcid =
+    requestEcid &&
+    requestEcid.length > 0 &&
+    typeof requestEcid[0]?.id === "string" &&
+    requestEcid[0].id.trim() !== "";
 
-  console.log("requestEcid", requestEcid);
-  let ecid = requestEcid || [{ id: "" }];
+  let ecid = hasValidRequestEcid ? requestEcid : [{ id: "" }];
   let ecidSource = null; // Track how ECID was obtained
 
-  if (!requestEcid) {
+  if (!hasValidRequestEcid) {
     // Identity cookie is ONLY checked when identityMap has no ECID (matching Konductor logic)
     const ecidFromCookie = getEcidFromStateEntries(
       orgId,
