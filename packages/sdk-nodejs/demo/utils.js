@@ -115,7 +115,13 @@ const getPersistedValues = (response) => {
     locationHintIdHandle?.payload.find((scope) => scope.scope === "EdgeNetwork")
       ?.hint || "";
 
-  return { ecid, locationHintId };
+  const identityCookieValueHandle = response?.handle?.find(
+    (payload) =>
+      payload.type === "state:store"
+  );
+  const identityCookieValue = identityCookieValueHandle?.payload.find((entry) => entry.key.includes("_identity"))?.value || "";
+
+  return { ecid, locationHintId, identityCookieValue };
 };
 
 export { createClientRequest, getPersistedValues };
