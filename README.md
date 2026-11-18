@@ -6,6 +6,7 @@ This project aims to provide an SDK for Target CDN based experimentation on diff
 The project is structured as a monorepo with the following packages:
 - sdk: The main SDK package that provides the core functionality.
 - sdk-akamai: The Akamai Edge Worker package that provides the functionality to run the SDK on Akamai Edge Workers.
+- sdk-cloudflare: The Cloudflare Workers package that provides the functionality to run the SDK on Cloudflare Workers.
 - sdk-nodejs: The NodeJS package that provides the functionality to run the SDK on NodeJS.
 
 ## Features

@@ -20,6 +20,9 @@ import { Container, TOKENS } from "./container.js";
 import { eventNotificationAdaptor } from "./utils/eventNotificationAdaptor.js";
 import { locationHintRequester } from "./locationHintRequester.js";
 import { incrementValue } from "./utils/debug.js";
+import { createLazyScheduler } from "./edge/lazyScheduler.js";
+import { createFetchAdapter } from "./edge/fetchAdapter.js";
+import { md5 } from "./edge/md5.js";
 
 /**
  * The Client initialization method
@@ -88,12 +91,12 @@ async function BaseClient(clientOptions) {
   }
 
   return {
-    sendEvent: async (requestBody) => {
+    sendEvent: async (requestBody, callOptions) => {
       if (scheduler) {
         options.debug.numberOfSchedulerCalls = incrementValue(
           options.debug.numberOfSchedulerCalls ?? 0,
         );
-        scheduler.maybeRefresh();
+        scheduler.maybeRefresh(callOptions);
       }
       options.debug.numberOfSendEventCalls = incrementValue(
         options.debug.numberOfSendEventCalls ?? 0,
@@ -112,33 +115,46 @@ async function BaseClient(clientOptions) {
           options.debug.numberOfAutomaticSendNotificationCalls ?? 0,
         );
         if (displayEvent) {
-          sendNotification(options, displayEvent).catch((error) => {
-            if (options?.debug?.logEdgeErrors) {
-              logAdapterInstance.log(
-                "edgeRequester error (sendNotification fire-and-forget)",
-                {
-                  message: error?.message,
-                  status: error?.status,
-                  statusText: error?.statusText,
-                  url: error?.url,
-                  body: error?.body,
-                },
-              );
-            }
-          });
+          const notification = sendNotification(options, displayEvent).catch(
+            (error) => {
+              if (options?.debug?.logEdgeErrors) {
+                logAdapterInstance.log(
+                  "edgeRequester error (sendNotification fire-and-forget)",
+                  {
+                    message: error?.message,
+                    status: error?.status,
+                    statusText: error?.statusText,
+                    url: error?.url,
+                    body: error?.body,
+                  },
+                );
+              }
+            },
+          );
+          // keeps the runtime alive until the notification is delivered (e.g. Cloudflare ctx.waitUntil)
+          callOptions?.waitUntil?.(notification);
         }
       }
       return response;
     },
-    sendNotification: async (requestBody) => {
+    sendNotification: async (requestBody, callOptions) => {
       options.debug.numberOfManualSendNotificationCalls = incrementValue(
         options.debug.numberOfManualSendNotificationCalls ?? 0,
       );
-      return sendNotification(options, requestBody);
+      const notification = sendNotification(options, requestBody);
+      callOptions?.waitUntil?.(Promise.resolve(notification).catch(() => {}));
+      return notification;
     },
     stopRulesPoolingInterval: () => options?.stopRulesPoolingInterval(),
     getDebugInfo: () => options?.debug,
   };
 }
 
-export { BaseClient, Container, TOKENS };
+export {
+  BaseClient,
+  Container,
+  TOKENS,
+  createLazyScheduler,
+  createFetchAdapter,
+  md5,
+};

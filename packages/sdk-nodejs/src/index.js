@@ -15,21 +15,34 @@ import {
   Container,
   TOKENS,
 } from "@adobe/target-cdn-experimentation-core";
-import { rng } from "./uuid/rng.js";
-import { httpRequestAdapterInstance } from "./httpRequestAdapter.js";
-import { md5 } from "./md5.js";
-import { createNodeScheduler } from "./scheduler.js";
+import { getPlatformAdapters, PLATFORMS } from "./platforms/index.js";
+
+let activePlatform = null;
 
 /**
  * The Client initialization method
+ * `platform` selects which runtime to emulate: "node" (default), "akamai" or "cloudflare".
+ * It can also be set with the TARGET_SDK_PLATFORM environment variable.
  * @param {import("../types").ClientOptions} clientOptions - The configuration options for the client
  * @returns {Promise<import("../types").ClientResponse>} A promise that resolves to the client response object
  */
 export async function Client(clientOptions) {
-  Container().registerInstance(TOKENS.RNG, rng);
-  Container().registerInstance(TOKENS.HTTP_CLIENT, httpRequestAdapterInstance);
-  Container().registerInstance(TOKENS.LOGGER, console);
-  Container().registerInstance(TOKENS.MD5, md5);
-  Container().registerInstance(TOKENS.SCHEDULER, createNodeScheduler());
+  const platform =
+    clientOptions?.platform ??
+    globalThis.process?.env?.TARGET_SDK_PLATFORM ??
+    PLATFORMS.NODE;
+  const adapters = getPlatformAdapters(platform);
+
+  // the container keeps the first registration, so a different platform needs a clean slate
+  if (activePlatform && activePlatform !== platform) {
+    Container().reset();
+  }
+  activePlatform = platform;
+
+  Container().registerInstance(TOKENS.RNG, adapters.rng);
+  Container().registerInstance(TOKENS.HTTP_CLIENT, adapters.httpClient);
+  Container().registerInstance(TOKENS.LOGGER, adapters.logger);
+  Container().registerInstance(TOKENS.MD5, adapters.md5);
+  Container().registerInstance(TOKENS.SCHEDULER, adapters.scheduler);
   return BaseClient(clientOptions);
 }

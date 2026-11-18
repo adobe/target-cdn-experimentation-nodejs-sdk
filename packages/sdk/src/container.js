@@ -35,9 +35,15 @@ const createRegistry = () => {
     return registry[name];
   };
 
+  // allows a different platform to be wired in the same process (local debugging and tests)
+  const reset = () => {
+    Object.keys(registry).forEach((name) => delete registry[name]);
+  };
+
   return {
     registerInstance,
     getInstance,
+    reset,
   };
 };
 

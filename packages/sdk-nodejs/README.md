@@ -27,6 +27,7 @@ ClientOptions {
   edgeDomain?: string; // default: edge.adobedc.net; Override the domain 
   edgeBasePath?: string; // default: ee; 
   rules?: Record<string, any>; // Inline rules that can be used to evaluate the events; Can be retrieved from assets.adobetarget.com
+  platform?: "node" | "akamai" | "cloudflare"; // default: node (or the TARGET_SDK_PLATFORM environment variable); which CDN runtime to emulate, see Platforms below
   rulesPoolingInterval?: number; // Interval in seconds to pool the rules from the Adobe server; if not provided the rules are not pooled
   ruleDomain?: string; // default: assets.adobetarget.com; Override the domain for the rules 
   ruleBasePath?: string; // default: aep-odd-rules; Override the base path for the rules;
@@ -41,6 +42,25 @@ The Client will return 3 functions where the event is in the format expected by 
   stopRulesPoolingInterval() // return void; stop rules Pooling 
 }
 ```
+
+### Platforms
+
+The same `Client` can run with the platform wiring of each CDN, so the Akamai and Cloudflare behaviour can be debugged and tested locally on Node before deploying:
+
+| `platform` | Scheduler | HTTP | Crypto / md5 | Notes |
+|---|---|---|---|---|
+| `node` (default) | `setInterval` | `https` module | Node `crypto` | Regular Node.js behaviour |
+| `akamai` | request-driven (lazy) | `fetch` | Web Crypto, pure JS md5 | Emulates the Akamai SDK wiring |
+| `cloudflare` | request-driven (lazy) | `fetch` | Web Crypto, pure JS md5 | Uses the adapters of `sdk-cloudflare` |
+
+```javascript
+const client = await Client({ ...options, platform: "cloudflare" });
+// background work (rules refresh, notifications) is registered with waitUntil, like ctx.waitUntil in a Worker
+const response = await client.sendEvent(event, { waitUntil: (promise) => pending.push(promise) });
+await Promise.all(pending);
+```
+
+All decisioning code is shared in `sdk`; only the adapters differ. Switching platforms in the same process re-registers the adapters.
 
 ### General workflow 
 1) Client initialization

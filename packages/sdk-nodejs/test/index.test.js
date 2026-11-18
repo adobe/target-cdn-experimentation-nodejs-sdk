@@ -34,6 +34,9 @@ jest.unstable_mockModule("../src/httpRequestAdapter.js", () => ({
 }));
 jest.unstable_mockModule("@adobe/target-cdn-experimentation-core", () => ({
   BaseClient: BaseClientMock,
+  createFetchAdapter: jest.fn(),
+  createLazyScheduler: jest.fn(),
+  md5: jest.fn(),
   TOKENS: actualContainer.TOKENS,
   Container: jest.fn().mockImplementation(() => ({
     registerInstance: registerInstanceMock,

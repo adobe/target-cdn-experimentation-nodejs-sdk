@@ -1,0 +1,15 @@
+name = "target-cdn-sdk-lab"
+main = "lab-worker.js"
+compatibility_date = "2025-10-01"
+
+# No "nodejs_compat" flag is needed: the SDK only uses web standard APIs.
+
+[vars]
+DATASTREAM_ID = "DATASTREAM_ID"
+ORG_ID = "ORG_ID@AdobeOrg"
+PROPERTY_TOKEN = "PROPERTY_TOKEN"
+ODD_ENABLED = "false"               # "true" evaluates the rules in the Worker
+DECISION_SCOPES = "__view__"        # comma separated
+RULES_POOLING_INTERVAL_SECONDS = "300"
+# EDGE_DOMAIN = "edge.adobedc.net"  # override to use a proxied / first party domain
+# COOKIE_DOMAIN = ".example.com"
