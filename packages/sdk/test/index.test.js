@@ -65,6 +65,7 @@ jest.unstable_mockModule("../src/locationHintRequester.js", () => ({
 }));
 
 const { BaseClient } = await import("../src/index.js");
+const { Container, TOKENS } = await import("../src/container.js");
 
 describe("base client", () => {
   const clientOptions = {
@@ -137,5 +138,81 @@ describe("base client", () => {
     await expect(async () => {
       await BaseClient(oddDisabledAndNoRulesOptions);
     }).rejects.toThrow();
+  });
+
+  describe("waitUntil support", () => {
+    const decisionsResponse = {
+      handle: [
+        {
+          type: "personalization:decisions",
+          payload: [{ id: "p1", scope: "scope", scopeDetails: {} }],
+        },
+      ],
+    };
+
+    it("should pass the call options to the scheduler when sending an event", async () => {
+      const scheduler = Container().getInstance(TOKENS.SCHEDULER);
+      const client = await BaseClient({ ...clientOptions, oddEnabled: false });
+      const callOptions = { waitUntil: jest.fn() };
+
+      await client.sendEvent({}, callOptions);
+
+      expect(scheduler.maybeRefresh).toHaveBeenLastCalledWith(callOptions);
+    });
+
+    it("should register the automatic display notification with waitUntil", async () => {
+      const client = await BaseClient({ ...clientOptions, oddEnabled: false });
+      const waitUntil = jest.fn();
+      remoteSendEventMock.mockResolvedValueOnce(decisionsResponse);
+      sendNotificationMock.mockImplementationOnce(() => Promise.resolve({}));
+
+      await client.sendEvent(
+        { xdm: {}, personalization: { sendDisplayEvent: true } },
+        { waitUntil },
+      );
+
+      expect(sendNotificationMock).toHaveBeenCalledTimes(1);
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+      expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
+    });
+
+    it("should register a manual notification with waitUntil and return its result", async () => {
+      const client = await BaseClient({ ...clientOptions, oddEnabled: false });
+      const waitUntil = jest.fn();
+      sendNotificationMock.mockImplementationOnce(() =>
+        Promise.resolve({ ok: true }),
+      );
+
+      await expect(client.sendNotification({}, { waitUntil })).resolves.toEqual(
+        { ok: true },
+      );
+      expect(waitUntil).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not let a failed notification reject the promise given to waitUntil", async () => {
+      const client = await BaseClient({ ...clientOptions, oddEnabled: false });
+      const waitUntil = jest.fn();
+      sendNotificationMock.mockImplementationOnce(() =>
+        Promise.reject(new Error("collect failed")),
+      );
+
+      await expect(client.sendNotification({}, { waitUntil })).rejects.toThrow(
+        "collect failed",
+      );
+      await expect(waitUntil.mock.calls[0][0]).resolves.toBeUndefined();
+    });
+
+    it("should work without call options", async () => {
+      const client = await BaseClient({ ...clientOptions, oddEnabled: false });
+      remoteSendEventMock.mockResolvedValueOnce(decisionsResponse);
+      sendNotificationMock.mockImplementationOnce(() => Promise.resolve({}));
+
+      await expect(
+        client.sendEvent({
+          xdm: {},
+          personalization: { sendDisplayEvent: true },
+        }),
+      ).resolves.toEqual(decisionsResponse);
+    });
   });
 });

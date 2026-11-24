@@ -26,6 +26,12 @@ export interface ClientOptions {
   oddEnabled: boolean; // Enable local decisioning or go to the Adobe Target servers
   ruleDomain?: string; // default: assets.adobetarget.com; Override the domain for the rules for an internal server
   ruleBasePath?: string; // default: aep-odd-rules; Override the base path for the rules;
+  platform?: "node" | "akamai" | "cloudflare"; // default: node; Wires the adapters of the runtime to emulate; can also be set with the TARGET_SDK_PLATFORM environment variable
+}
+
+// Optional per-request options; on Cloudflare pass ctx.waitUntil so refreshes and notifications finish after the response
+export interface CallOptions {
+  waitUntil?: (promise: Promise<unknown>) => void;
 }
 export interface ClientResponse {
   sendEvent: SendEvent;
@@ -58,9 +64,9 @@ export interface EventResponseHandle {
 }
 
 export interface SendEvent {
-  (options: EventOptions): Promise<EventResponse>;
+  (options: EventOptions, callOptions?: CallOptions): Promise<EventResponse>;
 }
 
 export interface SendNotification {
-  (options: EventOptions): Promise<EventResponse>;
+  (options: EventOptions, callOptions?: CallOptions): Promise<EventResponse>;
 }
